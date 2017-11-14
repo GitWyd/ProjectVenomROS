@@ -10,9 +10,13 @@
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
 #include <iostream>
+#include <vector>
 #include <signal.h>
 #include <math.h>
 
+/**
+ * Callback functions
+ */
 mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
@@ -21,6 +25,20 @@ void state_cb(const mavros_msgs::State::ConstPtr& msg){
 geometry_msgs::PoseStamped current_pose;
 void pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
     current_pose = *msg;
+}
+
+/**
+ * Path generation
+ */
+static geometry_msgs::Quaternion
+get_quaternion(std::vector<double> normal, double theta){
+	geometry_msgs::Quaternion q;
+	q.x = normal[0] * std::sin(theta/2.);
+	q.y = normal[1] * std::sin(theta/2.);
+	q.z = normal[2] * std::sin(theta/2.);
+	q.w = std::cos(theta/2.);
+	//std::cout << q.x << ' ' << q.y << ' ' << q.z << ' ' << q.w << std::endl;
+	return q;
 }
 
 static std::list<geometry_msgs::PoseStamped>
@@ -34,27 +52,65 @@ CircleTrajectory(int resolution, double radius, double height){
         pose.pose.position.x = radius * cos(theta);
         pose.pose.position.y = radius * sin(theta);
         pose.pose.position.z = height;
+	pose.pose.orientation = get_quaternion({0.,0.,1.},theta+M_PI/2.0);
         traj.push_back( pose );
     }
     return traj;
+}
+
+static std::list<geometry_msgs::PoseStamped>
+SetPoint(){
+	std::list<geometry_msgs::PoseStamped> traj;
+	geometry_msgs::PoseStamped pose;
+        pose.pose.position.x = 0;
+        pose.pose.position.y = 0;
+        pose.pose.position.z = 3.;
+	geometry_msgs::Quaternion q = get_quaternion({0.,0.,1.},M_PI/4.);
+	pose.pose.orientation.x = q.x;
+	pose.pose.orientation.y = q.y;
+	pose.pose.orientation.z = q.z;
+	pose.pose.orientation.w = q.w;
+	traj.push_back(pose);
+	traj.push_back(pose);
+	return traj;
 }
 
 static double EstimatedError(geometry_msgs::PoseStamped pose){
     double error = 0;
     std::cout << "Current pose: " << current_pose.pose.position.x
 	    << ", " << current_pose.pose.position.y 
-	    << ", " << current_pose.pose.position.z << std::endl;
+	    << ", " << current_pose.pose.position.z
+	    << ", " << current_pose.pose.orientation.x 
+	    << ", " << current_pose.pose.orientation.y 
+	    << ", " << current_pose.pose.orientation.z 
+	    << ", " << current_pose.pose.orientation.w 
+	    << std::endl;
     std::cout << "Command pose: " << pose.pose.position.x
 	    << ", " << pose.pose.position.y 
-	    << ", " << pose.pose.position.z << std::endl;
+	    << ", " << pose.pose.position.z
+	    << ", " << pose.pose.orientation.x 
+	    << ", " << pose.pose.orientation.y 
+	    << ", " << pose.pose.orientation.z 
+	    << ", " << pose.pose.orientation.w 
+	    << std::endl;
     error += abs(current_pose.pose.position.x - pose.pose.position.x);
     error += abs(current_pose.pose.position.y - pose.pose.position.y);
     error += abs(current_pose.pose.position.z - pose.pose.position.z);
     return error;
 }
 
+static double AttitudeError(geometry_msgs::PoseStamped pose){
+    double error = 0;
+    error += abs(current_pose.pose.orientation.x - pose.pose.orientation.x);
+    error += abs(current_pose.pose.orientation.y - pose.pose.orientation.y);
+    error += abs(current_pose.pose.orientation.z - pose.pose.orientation.z);
+    error += abs(current_pose.pose.orientation.w - pose.pose.orientation.w);
+    return error;
+}
+
 int main(int argc, char **argv)
 {
+    //std::list<geometry_msgs::PoseStamped> path = SetPoint();
     ros::init(argc, argv, "offb_node");
     ros::NodeHandle nh;
 
@@ -88,6 +144,7 @@ int main(int argc, char **argv)
     int res = 40;
     double r = 3.0, h = 3.0, tol = 0.001;
     std::list<geometry_msgs::PoseStamped> path = CircleTrajectory(res, r, h);
+    //std::list<geometry_msgs::PoseStamped> path = SetPoint();
 
     //send a few setpoints for 3 seconds
     for(int i = 3.0*hz; ros::ok() && i > 0; --i){
@@ -127,6 +184,7 @@ int main(int argc, char **argv)
         }
 
         double e = EstimatedError( pose );
+        double e1 = AttitudeError( pose );
         if ( e < tol ){
             std::cout << "Switch to next set point\n";
 	    path.push_back( pose );
