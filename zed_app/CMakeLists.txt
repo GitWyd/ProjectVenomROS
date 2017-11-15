@@ -79,6 +79,7 @@ include_directories(
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_executable(pcl_viewer src/pcl_viewer.cpp src/GLViewer.cpp)
 add_executable(depth_viewer src/depth_viewer.cpp)
+add_executable(obstacle_detect src/obstacle_detect.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(pcl_viewer ${catkin_LIBRARIES}
@@ -89,11 +90,11 @@ target_link_libraries(pcl_viewer ${catkin_LIBRARIES}
                         ${GLEW_LIBRARY}
                         ${CUDA_CUDA_LIBRARY} ${CUDA_CUDART_LIBRARY} ${CUDA_NPP_LIBRARIES_ZED}
 			${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(depth_viewer ${ZED_LIBRARIES}
+target_link_libraries(depth_viewer ${catkin_LIBRARIES} ${ZED_LIBRARIES}
                         ${OpenCV_LIBS}
                         ${CUDA_LIBRARIES} ${CUDA_npps_LIBRARY} ${CUDA_nppi_LIBRARY} ${CMAKE_THREAD_LIBS_INIT}
-                    )
-
+)
+target_link_libraries(obstacle_detect ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
 #############
 ## Testing ##
 #############
