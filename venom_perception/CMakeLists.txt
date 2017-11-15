@@ -6,11 +6,15 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED
 	roscpp
 	std_msgs
+	sensor_msgs
 	geometry_msgs
 	nav_msgs
 	mavros_msgs
 	pcl_ros
 	pcl_conversions
+	OpenCV REQUIRED
+	image_transport
+	cv_bridge
 )
 
 catkin_package(
@@ -23,6 +27,7 @@ catkin_package(
 include_directories(
  include
  ${catkin_INCLUDE_DIRS}
+ ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -39,3 +44,9 @@ target_link_libraries(visual_pose ${catkin_LIBRARIES})
 
 add_executable(cloud_reader src/cloud_reader.cpp)
 target_link_libraries(cloud_reader ${catkin_LIBRARIES})
+
+add_executable(depth_map src/depth_map.cpp)
+target_link_libraries(depth_map ${catkin_LIBRARIES})
+
+add_executable(cv_test src/cv_test.cpp)
+target_link_libraries(cv_test ${catkin_LIBRARIES})
