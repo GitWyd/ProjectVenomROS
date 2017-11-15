@@ -12,10 +12,10 @@ find_package(catkin REQUIRED
 	mavros_msgs
 	pcl_ros
 	pcl_conversions
-	OpenCV REQUIRED
 	image_transport
 	cv_bridge
 )
+find_package(OpenCV REQUIRED)
 
 catkin_package(
 #  INCLUDE_DIRS include
