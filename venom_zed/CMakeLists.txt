@@ -36,3 +36,6 @@ include_directories(
 
 add_executable( example src/example.cpp)
 target_link_libraries( example ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
+
+add_executable( depth_image src/depth_image.cpp)
+target_link_libraries( depth_image ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
