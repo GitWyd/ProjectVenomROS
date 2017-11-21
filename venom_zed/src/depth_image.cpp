@@ -17,6 +17,15 @@
 #include <opencv2/core/utility.hpp>
 #endif
 
+#include <ros/ros.h>
+#include <visualization_msgs/Marker.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/Point.h>
+#include <geometry_msgs/PoseWithCovariance.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <nav_msgs/Odometry.h>
+
 using namespace std;
 
 typedef struct SaveParamStruct {
@@ -30,6 +39,8 @@ typedef struct SaveParamStruct {
 
 sl::Camera *zed_ptr;
 SaveParam *param;
+sl::Pose camera_pose;
+std::thread zed_callback;
 
 std::string getFormatNamePC(sl::POINT_CLOUD_FORMAT f) {
     std::string str_;
@@ -128,6 +139,36 @@ void saveSbSimage(std::string filename) {
     zed_ptr->retrieveImage(sbs_sl, sl::VIEW_SIDE_BY_SIDE);
     sbs_sl.write(filename.c_str());
     std::cout << "Image saved !" << std::endl;
+}
+
+// TODO: Yan's code here
+ros::Publisher marker_pub;
+visualization_msgs::Marker marker;
+
+geometry_msgs::PoseWithCovarianceStamped currentPose;
+void odom_cb(const nav_msgs::Odometry& msg) {
+  currentPose.header = msg.header;
+  currentPose.pose = msg.pose;
+  marker.header.frame_id = "map";
+  marker.header.stamp = ros::Time();
+  marker.ns = "/venom";
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::ARROW;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose = currentPose.pose.pose;
+  marker.pose.orientation.x *= -1.0; // Reverse direction
+  marker.pose.orientation.y *= -1.0; // Reverse direction
+  marker.pose.orientation.z *= -1.0; // Reverse direction
+  //marker.pose.orientation.w *= -1.0; // Reverse direction
+  marker.scale.x = 1.0;
+  marker.scale.y = 0.1;
+  marker.scale.z = 0.1;
+  marker.color.a = 1.0; // Don't forget to set the alpha!
+  marker.color.r = 1.0f;
+  marker.color.g = 0.0f;
+  marker.color.b = 0.0f;
+  marker.lifetime = ros::Duration();
+  marker_pub.publish( marker);
 }
 
 int main(int argc, char **argv) {
@@ -303,7 +344,50 @@ int main(int argc, char **argv) {
 
     std::cout << " Press 'q' to exit" << std::endl;
     int count = 0;
+
+    // TODO Yan's code here
+    // Get the distance between the center of the camera and the left eye
+    float translation_left_to_center = zed.getCameraInformation().calibration_parameters.T.x * 0.5f;
+    ros::init(argc, argv, "depth_map");
+    ros::NodeHandle nh;
+    ros::Subscriber odom_sub = nh.subscribe("/zed/odom", 10, odom_cb);
+    marker_pub = nh.advertise<visualization_msgs::Marker>( "/venom/direction", 10 );
     while (!quit_ && (zed.getSVOPosition() <= nbFrames)) {
+
+	sl::TRACKING_STATE tracking_state = zed.getPosition(camera_pose, sl::REFERENCE_FRAME_WORLD);
+        if (tracking_state == sl::TRACKING_STATE_OK) {
+          //transformPose(camera_pose.pose_data, translation_left_to_center);
+          sl::float4 quaternion = camera_pose.getOrientation();
+          sl::float3 rotation = camera_pose.getEulerAngles();
+          sl::float3 translation = camera_pose.getTranslation();
+          //std::cout << "quaternion: " << quaternion[0] << ", "
+	  //         << quaternion[1] << ", " << quaternion[2] << std::endl;
+	  marker.header.frame_id = "map";
+	  marker.header.stamp = ros::Time();
+	  marker.ns = "/venom";
+	  marker.id = 0;
+	  marker.type = visualization_msgs::Marker::ARROW;
+	  marker.action = visualization_msgs::Marker::ADD;
+	  marker.pose = currentPose.pose.pose;
+	  marker.pose.orientation.x = quaternion[2];
+	  marker.pose.orientation.y = -quaternion[0];
+	  marker.pose.orientation.z = -quaternion[1];
+	  marker.pose.orientation.w = quaternion[3];
+	  marker.scale.x = 1.0f;
+	  marker.scale.y = 0.1f;
+	  marker.scale.z = 0.1f;
+	  marker.pose.position.x = translation[2] / 100.0f; // centimeter to meter
+	  marker.pose.position.y = -translation[0] / 100.0f;
+	  marker.pose.position.z = -translation[1] / 100.0f;
+          //std::cout << "translation: " << translation[0] << ", "
+	  //         << translation[1] << ", " << translation[2] << std::endl;
+	  marker.color.a = 1.0; // Don't forget to set the alpha!
+	  marker.color.r = 1.0f;
+	  marker.color.g = 0.0f;
+	  marker.color.b = 0.0f;
+	  marker.lifetime = ros::Duration();
+	  marker_pub.publish( marker);
+        }
 
         zed.grab(sl::SENSING_MODE_STANDARD);
         zed.retrieveImage(depthDisplay, sl::VIEW_DEPTH);
