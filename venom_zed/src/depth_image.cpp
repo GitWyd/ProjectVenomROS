@@ -25,6 +25,7 @@
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <math.h>
 
 using namespace std;
 
@@ -144,6 +145,8 @@ void saveSbSimage(std::string filename) {
 // TODO: Yan's code here
 ros::Publisher marker_pub;
 visualization_msgs::Marker marker;
+ros::Publisher nav_marker_pub; // Navigation policy
+visualization_msgs::Marker nav_marker;
 
 geometry_msgs::PoseWithCovarianceStamped currentPose;
 void odom_cb(const nav_msgs::Odometry& msg) {
@@ -169,6 +172,67 @@ void odom_cb(const nav_msgs::Odometry& msg) {
   marker.color.b = 0.0f;
   marker.lifetime = ros::Duration();
   marker_pub.publish( marker);
+}
+
+static inline sl::float4 ros_view(const sl::float4 &quaternion) {
+  sl::float4 ros;
+  ros[0] = quaternion[2];
+  ros[1] = -quaternion[0];
+  ros[2] = -quaternion[1];
+  ros[3] = quaternion[3];
+  return ros;
+}
+
+void publish_marker( sl::float4 &quaternion, sl::float3 &translation) {
+  marker.header.frame_id = "map";
+  marker.header.stamp = ros::Time();
+  marker.ns = "/venom";
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::ARROW;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose = currentPose.pose.pose;
+  marker.pose.orientation.x = quaternion[0];
+  marker.pose.orientation.y = quaternion[1];
+  marker.pose.orientation.z = quaternion[2];
+  marker.pose.orientation.w = quaternion[3];
+  marker.scale.x = 1.0f;
+  marker.scale.y = 0.1f;
+  marker.scale.z = 0.1f;
+  marker.pose.position.x = translation[2] / 100.0f; // centimeter to meter
+  marker.pose.position.y = -translation[0] / 100.0f;
+  marker.pose.position.z = -translation[1] / 100.0f;
+  marker.color.a = 0.8f; // Don't forget to set the alpha!
+  marker.color.r = 1.0f;
+  marker.color.g = 0.0f;
+  marker.color.b = 0.0f;
+  marker.lifetime = ros::Duration();
+  marker_pub.publish( marker);
+}
+
+void publish_nav_marker( sl::float4 &quaternion, sl::float3 &translation) {
+  nav_marker.header.frame_id = "map";
+  nav_marker.header.stamp = ros::Time();
+  nav_marker.ns = "/venom";
+  nav_marker.id = 0;
+  nav_marker.type = visualization_msgs::Marker::ARROW;
+  nav_marker.action = visualization_msgs::Marker::ADD;
+  nav_marker.pose = currentPose.pose.pose;
+  nav_marker.pose.orientation.x = quaternion[0];
+  nav_marker.pose.orientation.y = quaternion[1];
+  nav_marker.pose.orientation.z = quaternion[2];
+  nav_marker.pose.orientation.w = quaternion[3];
+  nav_marker.scale.x = 0.8f;
+  nav_marker.scale.y = 0.15f;
+  nav_marker.scale.z = 0.15f;
+  nav_marker.pose.position.x = translation[2] / 100.0f; // centimeter to meter
+  nav_marker.pose.position.y = -translation[0] / 100.0f;
+  nav_marker.pose.position.z = -translation[1] / 100.0f;
+  nav_marker.color.a = 1.0f; // Don't forget to set the alpha!
+  nav_marker.color.r = 0.0f;
+  nav_marker.color.g = 0.0f;
+  nav_marker.color.b = 1.0f;
+  nav_marker.lifetime = ros::Duration();
+  nav_marker_pub.publish( nav_marker);
 }
 
 int main(int argc, char **argv) {
@@ -317,7 +381,7 @@ int main(int argc, char **argv) {
     bool printHelp = false;
     std::string helpString = "[d] save Depth, [P] Save Point Cloud, [m] change format PC, [n] change format Depth, [q] quit";
 
-    int depth_clamp = 5000;
+    int depth_clamp = 20000;
     zed.setDepthMaxRangeValue(depth_clamp);
 
     int mode_PC = 0;
@@ -351,42 +415,34 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "depth_map");
     ros::NodeHandle nh;
     ros::Subscriber odom_sub = nh.subscribe("/zed/odom", 10, odom_cb);
-    marker_pub = nh.advertise<visualization_msgs::Marker>( "/venom/direction", 10 );
+    marker_pub = nh.advertise<visualization_msgs::Marker>( "/venom/pose", 10 );
+    nav_marker_pub = nh.advertise<visualization_msgs::Marker>( "/venom/navigation", 10 );
     while (!quit_ && (zed.getSVOPosition() <= nbFrames)) {
 
 	sl::TRACKING_STATE tracking_state = zed.getPosition(camera_pose, sl::REFERENCE_FRAME_WORLD);
         if (tracking_state == sl::TRACKING_STATE_OK) {
           //transformPose(camera_pose.pose_data, translation_left_to_center);
-          sl::float4 quaternion = camera_pose.getOrientation();
-          sl::float3 rotation = camera_pose.getEulerAngles();
+          sl::float4 quaternion = ros_view(camera_pose.getOrientation());
+          //sl::float3 rotation = camera_pose.getEulerAngles();
           sl::float3 translation = camera_pose.getTranslation();
-          //std::cout << "quaternion: " << quaternion[0] << ", "
-	  //         << quaternion[1] << ", " << quaternion[2] << std::endl;
-	  marker.header.frame_id = "map";
-	  marker.header.stamp = ros::Time();
-	  marker.ns = "/venom";
-	  marker.id = 0;
-	  marker.type = visualization_msgs::Marker::ARROW;
-	  marker.action = visualization_msgs::Marker::ADD;
-	  marker.pose = currentPose.pose.pose;
-	  marker.pose.orientation.x = quaternion[2];
-	  marker.pose.orientation.y = -quaternion[0];
-	  marker.pose.orientation.z = -quaternion[1];
-	  marker.pose.orientation.w = quaternion[3];
-	  marker.scale.x = 1.0f;
-	  marker.scale.y = 0.1f;
-	  marker.scale.z = 0.1f;
-	  marker.pose.position.x = translation[2] / 100.0f; // centimeter to meter
-	  marker.pose.position.y = -translation[0] / 100.0f;
-	  marker.pose.position.z = -translation[1] / 100.0f;
-          //std::cout << "translation: " << translation[0] << ", "
-	  //         << translation[1] << ", " << translation[2] << std::endl;
-	  marker.color.a = 1.0; // Don't forget to set the alpha!
-	  marker.color.r = 1.0f;
-	  marker.color.g = 0.0f;
-	  marker.color.b = 0.0f;
-	  marker.lifetime = ros::Duration();
-	  marker_pub.publish( marker);
+	  publish_marker(quaternion, translation);
+
+	  sl::Matrix3f rotation = sl::Orientation( quaternion ).getRotationMatrix();
+	  //sl::Matrix3f rotation = camera_pose.getRotationMatrix();
+	  sl::float3 nz {rotation(0,2), rotation(1,2), rotation(2,2)};
+	  std::cout << "N = " << nz[0] << ", " << nz[1] << ", " << nz[2] << std::endl;
+	  float theta = M_PI/4.0f;
+	  sl::float4 quaternion_shift1 {std::cos(theta),
+	                                nz[0] * std::sin(theta),
+	                                nz[1] * std::sin(theta),
+	                                nz[2] * std::sin(theta)};
+	  sl::float4 quaternion_shift2 {std::cos(-theta),
+	                                nz[0] * std::sin(-theta),
+	                                nz[1] * std::sin(-theta),
+	                                nz[2] * std::sin(-theta)};
+	  quaternion = sl::Orientation(quaternion_shift1) * sl::Orientation(quaternion) * sl::Orientation(quaternion_shift2);
+	  
+	  publish_nav_marker(quaternion, translation);
         }
 
         zed.grab(sl::SENSING_MODE_STANDARD);
