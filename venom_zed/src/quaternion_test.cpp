@@ -66,7 +66,8 @@ int main(int argc, char **argv) {
     rotation(1, 0) = std::sin(theta);
     rotation(1, 1) = std::cos(theta);
 
-    sl::Rotation result = rotation * quaternion.getRotationMatrix();
+    // Relative rotation is post-order
+    sl::Rotation result = quaternion.getRotationMatrix() * rotation;
     std::cout << "---------------------\n"
               << result(0, 0) << ", " << result(0, 1) << ", " << result(0, 2) << std::endl
               << result(1, 0) << ", " << result(1, 1) << ", " << result(1, 2) << std::endl
