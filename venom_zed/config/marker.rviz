@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /Marker1
+        - /Marker2
       Splitter Ratio: 0.5
     Tree Height: 435
   - Class: rviz/Selection
@@ -49,20 +50,28 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /venom/direction
-      Name: Marker
-      Namespaces:
-        /venom: true
-      Queue Size: 100
-      Value: true
     - Class: rviz/Axes
       Enabled: true
       Length: 1
       Name: Axes
       Radius: 0.100000001
       Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /venom/pose
+      Name: Marker
+      Namespaces:
+        /venom: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /venom/navigation
+      Name: Marker
+      Namespaces:
+        /venom: true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
