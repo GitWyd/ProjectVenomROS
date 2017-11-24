@@ -427,33 +427,75 @@ int main(int argc, char **argv) {
     ros::Subscriber odom_sub = nh.subscribe("/zed/odom", 10, odom_cb);
     marker_pub = nh.advertise<visualization_msgs::Marker>( "/venom/pose", 10 );
     nav_marker_pub = nh.advertise<visualization_msgs::Marker>( "/venom/navigation", 10 );
+    sl::Matrix3f rotation = rotation_z(M_PI/2.0f); // Rotation Matrix
 
-    // Rotation matrix
-    sl::Matrix3f rotation = rotation_z(M_PI/2.0f);
+    cv::Mat gray_cv;
+    //cv::namedWindow("Gray", cv::WINDOW_NORMAL );
+    cv::namedWindow("Depth", cv::WINDOW_NORMAL );
 
     while (!quit_ && (zed.getSVOPosition() <= nbFrames)) {
-
-	sl::TRACKING_STATE tracking_state = zed.getPosition(camera_pose, sl::REFERENCE_FRAME_WORLD);
-        if (tracking_state == sl::TRACKING_STATE_OK) {
-          sl::Orientation quaternion = ros_view(camera_pose.getOrientation());
-          sl::float3 translation = camera_pose.getTranslation();
-          set_marker(marker, quaternion, translation, sl::float4{1.0f,1.0f,1.0f,0.8f});
-          marker_pub.publish(marker);
-          sl::Rotation result = quaternion.getRotationMatrix() * rotation; // relative rotation is postfix
-          sl::float4 direction = result.getOrientation();
-          set_marker( marker, direction, translation, sl::float4{0.0f, 0.0f, 0.0f, 0.6f} );
-          nav_marker_pub.publish( marker);
-        } // End of Yan's code
 
         zed.grab(sl::SENSING_MODE_STANDARD);
         zed.retrieveImage(depthDisplay, sl::VIEW_DEPTH);
 
         depth_cv = cv::Mat(depthDisplay.getHeight(), depthDisplay.getWidth(), CV_8UC4, depthDisplay.getPtr<sl::uchar1>(sl::MEM_CPU));
+	cv::cvtColor(depth_cv, gray_cv, cv::COLOR_RGBA2GRAY);
 
         if (printHelp) // Write help text on the image if needed
             cv::putText(depth_cv, helpString, cv::Point(20, 20), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(111, 111, 111, 255), 2);
 
+	// TODO: image processing here
+	std::vector<cv::Point2i> locations;   // output, locations of non-zero pixels 
+	cv::findNonZero(gray_cv, locations);
+	double zero_ratio = 1.0 - static_cast<double>(locations.size() ) / gray_cv.cols / gray_cv.rows;
+	//std::cout << "Zero ratio = " << zero_ratio << std::endl;
+
+	float sum_x = 0;
+	float sum_y = 0;
+	float total_weight = 0;
+	float weight = 0;
+	for (auto location = locations.begin(); location != locations.end(); ++location) {
+	  weight = 1.0f - static_cast<float>(gray_cv.at<uint8_t>(location->x,location->y)) / 255.0f;
+	  total_weight += weight;
+	  sum_x += static_cast<float>(location->x) * weight;
+	  sum_y += static_cast<float>(location->y) * weight;
+	}
+	int avg_x = static_cast<int>(sum_x / total_weight);
+        int avg_y = static_cast<int>(sum_y / total_weight);
+	std::cout << "Average (x, y) = " << avg_x << ", " << avg_y << std::endl;
+	//std::cout << "Total weight = " << total_weight << std::endl;
+	cv::circle( depth_cv, cv::Point2i{avg_x, avg_y}, 4, cv::Scalar(0,0,255), 5);
+	bool turn_right = avg_x >= gray_cv.cols/2;
+	if (turn_right)
+	  std::cout << "Turn right\n";
+	else
+	  std::cout << "Turn left\n";
+
+
+	// TODO: odometry here
+	sl::TRACKING_STATE tracking_state = zed.getPosition(camera_pose, sl::REFERENCE_FRAME_WORLD);
+        if (tracking_state == sl::TRACKING_STATE_OK) {
+          sl::Orientation quaternion = ros_view(camera_pose.getOrientation());
+          sl::float3 translation = camera_pose.getTranslation();
+          set_marker(marker, quaternion, translation, sl::float4{1.0f,1.0f,1.0f,0.9f} );
+          marker_pub.publish(marker);
+
+          if (zero_ratio > 0.7 )
+	    rotation = rotation_z(M_PI); // Rotation Matrix
+	  else if (zero_ratio > 0.4 ) {
+	    if (turn_right)
+	      rotation = rotation_z(-M_PI/2.0f); // Rotation Matrix
+	    else
+	      rotation = rotation_z(M_PI/2.0f); // Rotation Matrix
+	  } else
+	    rotation = rotation_z(0.0f);
+          sl::Rotation result = quaternion.getRotationMatrix() * rotation; // relative rotation is post-order
+          sl::float4 direction = result.getOrientation();
+          set_marker( marker, direction, translation, sl::float4{0.0f, 0.0f, 0.0f, 0.9f} );
+          nav_marker_pub.publish( marker);
+        } // End of Yan's code
         cv::imshow("Depth", depth_cv);
+        //cv::imshow("Gray", gray_cv);
         key = cv::waitKey(5);
 
         switch (key) {

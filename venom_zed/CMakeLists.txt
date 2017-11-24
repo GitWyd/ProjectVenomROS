@@ -42,3 +42,6 @@ target_link_libraries( depth_image ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV
 
 add_executable( quaternion_test src/quaternion_test.cpp)
 target_link_libraries( quaternion_test ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
+
+add_executable( venom_zed_test src/venom_zed_test.cpp)
+target_link_libraries( venom_zed_test ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
