@@ -1,16 +1,22 @@
 #include <iostream>
+#include <ros/ros.h>
+#include <std_msgs/Char.h>
 #include "util.h"
-int main() {
+int main(int argc, char **argv) {
+  ros::init(argc, argv, "AI");
+  ros::NodeHandle nh;
+  ros::Publisher pub = nh.advertise<std_msgs::Char>("/venom/high_level", 100);
   bool exit_ = false;
   char c;
+  std_msgs::Char c_msg;
   while ( !exit_ ) {
+    c = ' ';
     int res = venom::wait_key(1,0,c);
     if (res < 0) {
       std::cout << "error: select fail\n";
       break;
     }
 
-    std::cout << "Catch char " << c << std::endl;
     switch (c) {
       case 'a':
 	std::cout << "Go left\n";
@@ -33,6 +39,9 @@ int main() {
 	exit_ = true;
 	break;
     }
+    c_msg.data = c;
+    pub.publish(c_msg);
+    ros::spinOnce();
   }
 
   return 0;
