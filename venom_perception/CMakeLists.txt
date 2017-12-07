@@ -51,3 +51,6 @@ target_link_libraries(depth_map ${catkin_LIBRARIES})
 
 add_executable(cv_test src/cv_test.cpp)
 target_link_libraries(cv_test ${catkin_LIBRARIES})
+
+add_executable(perception_node src/perception_node.cpp)
+target_link_libraries(perception_node ${catkin_LIBRARIES})

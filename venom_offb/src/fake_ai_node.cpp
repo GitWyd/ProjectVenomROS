@@ -27,11 +27,11 @@ int main(int argc, char **argv) {
 	break;
       case 'd':
       case 'D':
-	std::cout << "Go right\n";
+	std::cout << "Go forward\n";
 	break;
       case 's':
       case 'S':
-	std::cout << "Go down\n";
+	std::cout << "Go backward\n";
 	break;
       case 'q':
       case 'Q':

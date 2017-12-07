@@ -8,6 +8,7 @@
 #include <vector>
 #include <signal.h>
 #include <math.h>
+#include <thread>
 
 #ifndef VENOM_NAVIGATOR_H
 #define VENOM_NAVIGATOR_H
@@ -16,9 +17,17 @@ namespace venom {
 class VenomNavigator {
 public:
   VenomNavigator() {
-    ros::NodeHandle nh;
+
+    setpoint_.pose.position.x = 0.0; 
+    setpoint_.pose.position.y = 0.0;
+    setpoint_.pose.position.z = 0.0;
+    setpoint_.pose.orientation.x = 0.0;
+    setpoint_.pose.orientation.y = 0.0;
+    setpoint_.pose.orientation.z = 0.0;
+    setpoint_.pose.orientation.w = 0.0;
 
     // Initialize ROS objects
+    ros::NodeHandle nh;
     arming_client_ = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
     set_mode_client_ = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 
@@ -38,11 +47,13 @@ public:
     pose_sub_.shutdown();
     state_sub_.shutdown();
     command_sub_.shutdown();
-    //setpoint_pub_.unregister();
   }
 
   bool Ok() {
-    return state_.connected;
+    if (state_.mode == "OFFBOARD")
+      return state_.connected && state_.armed;
+    else
+      return state_.connected;
   }
 
   void TakeOff() {
@@ -55,13 +66,16 @@ public:
     mavros_msgs::CommandBool arm_cmd;
     arm_cmd.request.value = true;
 
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 0.0; 
-    pose.pose.position.y = 0.0;
-    pose.pose.position.z = 3.0;
+    setpoint_.pose.position.x = 0.0; 
+    setpoint_.pose.position.y = 0.0;
+    setpoint_.pose.position.z = 3.0;
+    setpoint_.pose.orientation.x = 0.0;
+    setpoint_.pose.orientation.y = 0.0;
+    setpoint_.pose.orientation.z = 0.0;
+    setpoint_.pose.orientation.w = 0.0;
 
     for (int i = 0; i < 30; i++) {
-      setpoint_pub_.publish(pose);
+      setpoint_pub_.publish(setpoint_);
       ros::spinOnce();
       ros::Duration(0.1);
       ROS_INFO("Buffering");
@@ -75,16 +89,16 @@ public:
       ROS_INFO("Offboard enabled");
     if( arming_client_.call(arm_cmd) && arm_cmd.response.success)
       ROS_INFO("Vehicle armed");
+
+    navigate_ = std::thread(&VenomNavigator::NavProcess, this);
   }
 
   void Land() {
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 0.0; 
-    pose.pose.position.y = 0.0;
-    pose.pose.position.z = 0.0;
+    setpoint_.pose.position.x = 0.0; // Racing condition!! Probably need to synchronize
+    setpoint_.pose.position.y = 0.0;
+    setpoint_.pose.position.z = 0.0;
 
-    while (Error(pose) > 0.05) {
-      setpoint_pub_.publish(pose);
+    while (Error(setpoint_) > 0.05) {
       ros::spinOnce();
       ros::Duration(0.1).sleep();
       ROS_INFO("Landing");
@@ -105,6 +119,8 @@ public:
       ROS_INFO("Vehicle disarmed");
     if( set_mode_client_.call(offb_set_mode) && offb_set_mode.response.mode_sent )
       ROS_INFO("Back to manual mode");
+    exit_ = true;
+    navigate_.join();
   }
 
   void SetPoint(const geometry_msgs::PoseStamped& ps) {
@@ -123,6 +139,7 @@ public:
 private:
   mavros_msgs::State state_;
   geometry_msgs::PoseStamped pose_;
+  geometry_msgs::PoseStamped setpoint_;
   char command_;
 
   ros::ServiceClient arming_client_;
@@ -135,16 +152,48 @@ private:
   ros::Publisher setpoint_pub_;
   void StateCallback(const mavros_msgs::State::ConstPtr& msg){
     state_ = *msg;
-    //std::cout << "Echo from state callback\n";
   }
 
   void PoseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
     pose_ = *msg;
-    //std::cout << "Echo from pose callback\n";
   }
 
   void CommandCallback(const std_msgs::Char::ConstPtr& msg){
     command_ = msg->data;
+  }
+
+  // Separate thread to control setpoint_
+  bool exit_;
+  std::thread navigate_;
+  void NavProcess() {
+    ros::Duration t(0.1);
+    float offset = 0.2;
+    while (ros::ok() && Ok() && !exit_ ) {
+      if (Error( setpoint_ ) < 0.01) {
+	switch (command_) {
+	  case 'w':
+	  case 'W':
+	    setpoint_.pose.position.x += offset;
+	    break;
+	  case 's':
+	  case 'S':
+	    setpoint_.pose.position.x -= offset;
+	    break;
+	  case 'd':
+	  case 'D':
+	    setpoint_.pose.position.y -= offset;
+	    break;
+	  case 'a':
+	  case 'A':
+	    setpoint_.pose.position.y += offset;
+	    break;
+	  case 'q':
+	    exit_ = true;
+	}
+      }
+      setpoint_pub_.publish(setpoint_);
+      t.sleep();
+    }
   }
 };
 } // namespace venom

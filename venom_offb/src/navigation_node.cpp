@@ -13,14 +13,14 @@ int main(int argc, char **argv) {
 
 
   venom::VenomNavigator nav;
-  if (!nav.Ok() )
-    return 1;
+  while (!nav.Ok() )
+    ros::Duration(0.5).sleep();
   nav.TakeOff();
-  while (ros::ok()) {
+  while (ros::ok() && nav.Ok()) {
     int rc = venom::wait_key(0,1000,c);
     if (c == 'q' || rc < 0)
       break;
-    nav.SetPoint(pose);
+    //nav.SetPoint(pose);
     ros::Duration(0.5).sleep();
     ros::spinOnce();
   }
