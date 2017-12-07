@@ -13,6 +13,8 @@
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
+//#include <tf/tranform_broadcaster.h>
+//#include <angles/angles.h>
 
 
 
@@ -83,6 +85,7 @@ ros::Publisher marker_pub;
 visualization_msgs::Marker marker;
 void setBack()
 {
+	//tf::Quaternion q_rot = tf::createQuaternionFromRPY(0.0, 0.0, 1.57);
 	marker.header.frame_id = "map";
 	marker.header.stamp = ros::Time();
 	marker.ns = "/venom";
@@ -94,6 +97,7 @@ void setBack()
 	marker.pose.orientation.y *= -1.0; // Reverse direction
 	marker.pose.orientation.z *= -1.0; // Reverse direction
 	//marker.pose.orientation.w *= -1.0; // Reverse direction
+	//marker.pose.orientation *= q_rot;
 	marker.scale.x = 1.0;
 	marker.scale.y = 0.1;
 	marker.scale.z = 0.1;
@@ -141,13 +145,14 @@ void direction_cb (const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
 
 	// Convert to PCL data type
 	pcl_conversions::toPCL(*cloud_msg, *cloud);
+	std::cout << "Raw: " << cloud->data.size() << std::endl;
 
 	// Perform the actual filtering
 	pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
 	sor.setInputCloud (cloudPtr);
 	sor.setLeafSize (0.05,0.05,0.05);
 	sor.filter (cloud_filtered);
-	std::cout << "Number of point: " << cloud_filtered.data.size() << std::endl;
+	std::cout << "Filtered: " << cloud_filtered.data.size() << std::endl;
 
 	if (cloud_filtered.data.size() < 250000 )
 		setBack();

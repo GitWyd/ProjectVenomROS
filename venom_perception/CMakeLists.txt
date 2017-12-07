@@ -14,6 +14,7 @@ find_package(catkin REQUIRED
 	pcl_conversions
 	image_transport
 	cv_bridge
+	tf
 )
 find_package(OpenCV REQUIRED)
 
