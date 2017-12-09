@@ -36,6 +36,8 @@ include_directories(
 #   src/${PROJECT_NAME}/venom_ros.cpp
 # )
 
+link_directories(${OpenCV_LIBS})
+
 ## Declare a C++ executable
 add_executable(visual_odometry src/visual_odometry.cpp)
 target_link_libraries(visual_odometry ${catkin_LIBRARIES})
@@ -50,7 +52,7 @@ add_executable(depth_map src/depth_map.cpp)
 target_link_libraries(depth_map ${catkin_LIBRARIES})
 
 add_executable(cv_test src/cv_test.cpp)
-target_link_libraries(cv_test ${catkin_LIBRARIES})
+target_link_libraries(cv_test ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable(perception_node src/perception_node.cpp)
 target_link_libraries(perception_node ${catkin_LIBRARIES})
