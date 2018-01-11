@@ -40,3 +40,6 @@ target_link_libraries(fake_ai_node ${catkin_LIBRARIES})
 
 add_executable(navigation_node src/navigation_node.cpp)
 target_link_libraries(navigation_node ${catkin_LIBRARIES})
+
+add_executable(vision_pose_converter src/vision_pose_converter.cpp)
+target_link_libraries(vision_pose_converter ${catkin_LIBRARIES})
