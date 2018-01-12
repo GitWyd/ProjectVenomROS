@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
   geometry_msgs::PoseStamped pose;
   pose.pose.position.x = 0.0;
   pose.pose.position.y = 0.0;
-  pose.pose.position.z = 3.0;
+  pose.pose.position.z = 1.0;
 
 
   venom::VenomNavigator nav;
@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     int rc = venom::wait_key(0,1000,c);
     if (c == 'q' || rc < 0)
       break;
-    //nav.SetPoint(pose);
+    nav.SetPoint(pose);
     ros::Duration(0.5).sleep();
     ros::spinOnce();
   }

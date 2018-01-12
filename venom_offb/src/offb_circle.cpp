@@ -75,27 +75,31 @@ SetPoint(){
 	return traj;
 }
 
-static double EstimatedError(geometry_msgs::PoseStamped pose){
-    double error = 0;
+static double EstimatedError(geometry_msgs::PoseStamped pose) {
+    double error = 0.0d;
     std::cout << "Current pose: " << current_pose.pose.position.x
 	    << ", " << current_pose.pose.position.y 
 	    << ", " << current_pose.pose.position.z
-	    << ", " << current_pose.pose.orientation.x 
-	    << ", " << current_pose.pose.orientation.y 
-	    << ", " << current_pose.pose.orientation.z 
-	    << ", " << current_pose.pose.orientation.w 
+	    //<< ", " << current_pose.pose.orientation.x 
+	    //<< ", " << current_pose.pose.orientation.y 
+	    //<< ", " << current_pose.pose.orientation.z 
+	    //<< ", " << current_pose.pose.orientation.w 
 	    << std::endl;
     std::cout << "Command pose: " << pose.pose.position.x
 	    << ", " << pose.pose.position.y 
 	    << ", " << pose.pose.position.z
-	    << ", " << pose.pose.orientation.x 
-	    << ", " << pose.pose.orientation.y 
-	    << ", " << pose.pose.orientation.z 
-	    << ", " << pose.pose.orientation.w 
+	    //<< ", " << pose.pose.orientation.x 
+	    //<< ", " << pose.pose.orientation.y 
+	    //<< ", " << pose.pose.orientation.z 
+	    //<< ", " << pose.pose.orientation.w 
 	    << std::endl;
-    error += abs(current_pose.pose.position.x - pose.pose.position.x);
-    error += abs(current_pose.pose.position.y - pose.pose.position.y);
-    error += abs(current_pose.pose.position.z - pose.pose.position.z);
+    //error += fabs(static_cast<double>(current_pose.pose.position.x - pose.pose.position.x));
+    //std::cout << "diff x = " << static_cast<double>(current_pose.pose.position.x - pose.pose.position.x) << std::endl;
+    //error += fabs(static_cast<double>(current_pose.pose.position.y - pose.pose.position.y));
+    //std::cout << "diff y = " << static_cast<double>(current_pose.pose.position.y - pose.pose.position.y) << std::endl;
+    error += fabs(static_cast<double>(current_pose.pose.position.z - pose.pose.position.z));
+    //std::cout << "diff z = " << static_cast<double>(current_pose.pose.position.z - pose.pose.position.z) << std::endl;
+    std::cout << "error estimate: " << std::fixed << std::setprecision(5.0) << error << std::endl;
     return error;
 }
 
@@ -139,10 +143,10 @@ int main(int argc, char **argv)
     pose = current_pose;
     pose.pose.position.x = 0.0;
     pose.pose.position.y = 0.0;
-    pose.pose.position.z = 3.2;
+    pose.pose.position.z = 1.0;
 
     int res = 40;
-    double r = 3.0, h = 3.0, tol = 0.001;
+    double r = 3.0, h = 3.0, tol = 0.25;
     std::list<geometry_msgs::PoseStamped> path = CircleTrajectory(res, r, h);
     //std::list<geometry_msgs::PoseStamped> path = SetPoint();
 
@@ -162,9 +166,9 @@ int main(int argc, char **argv)
     arm_cmd.request.value = true;
 
     ros::Time last_request = ros::Time::now();
-    pose = path.front();
+    //pose = path.front();
 
-    while(ros::ok()){
+    while(ros::ok()) {
         if( current_state.mode != "OFFBOARD" &&
             (ros::Time::now() - last_request > ros::Duration(5.0))){
             if( set_mode_client.call(offb_set_mode) &&
@@ -184,12 +188,13 @@ int main(int argc, char **argv)
         }
 
         double e = EstimatedError( pose );
-        double e1 = AttitudeError( pose );
-        if ( e < tol ){
-            std::cout << "Switch to next set point\n";
-	    path.push_back( pose );
-            pose = path.front();
-	    path.pop_front();
+        //double e1 = AttitudeError( pose );
+        if ( e < tol ) {
+	  std::cout << "You got it! Venom! :-)\n";
+            //std::cout << "Switch to next set point\n";
+	    //path.push_back( pose );
+            //pose = path.front();
+	    //path.pop_front();
 	}
 	
         local_pos_pub.publish(pose);

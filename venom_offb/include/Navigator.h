@@ -68,13 +68,13 @@ public:
 
     setpoint_.pose.position.x = 0.0; 
     setpoint_.pose.position.y = 0.0;
-    setpoint_.pose.position.z = 3.0;
+    setpoint_.pose.position.z = 1.0;
     setpoint_.pose.orientation.x = 0.0;
     setpoint_.pose.orientation.y = 0.0;
     setpoint_.pose.orientation.z = 0.0;
     setpoint_.pose.orientation.w = 0.0;
 
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 300; i++) {
       setpoint_pub_.publish(setpoint_);
       ros::spinOnce();
       ros::Duration(0.1);
@@ -98,7 +98,7 @@ public:
     setpoint_.pose.position.y = 0.0;
     setpoint_.pose.position.z = 0.0;
 
-    while (Error(setpoint_) > 0.05) {
+    while (Error(setpoint_) > 0.01) {
       ros::spinOnce();
       ros::Duration(0.1).sleep();
       ROS_INFO("Landing");
@@ -110,7 +110,7 @@ public:
     }
 
     mavros_msgs::SetMode offb_set_mode;
-    offb_set_mode.request.custom_mode = "Manual";
+    offb_set_mode.request.custom_mode = "STABILIZED";
 
     mavros_msgs::CommandBool arm_cmd;
     arm_cmd.request.value = true;
@@ -118,7 +118,7 @@ public:
     if( arming_client_.call(arm_cmd) && arm_cmd.response.success)
       ROS_INFO("Vehicle disarmed");
     if( set_mode_client_.call(offb_set_mode) && offb_set_mode.response.mode_sent )
-      ROS_INFO("Back to manual mode");
+      ROS_INFO("Back to stabilized mode");
     exit_ = true;
     navigate_.join();
   }
@@ -127,11 +127,11 @@ public:
     setpoint_pub_.publish(ps);
   }
 
-  double Error(geometry_msgs::PoseStamped pose){
+  double Error(geometry_msgs::PoseStamped pose) {
     double error = 0;
-    error += abs(pose_.pose.position.x - pose.pose.position.x);
-    error += abs(pose_.pose.position.y - pose.pose.position.y);
-    error += abs(pose_.pose.position.z - pose.pose.position.z);
+    error += fabs(pose_.pose.position.x - pose.pose.position.x);
+    error += fabs(pose_.pose.position.y - pose.pose.position.y);
+    error += fabs(pose_.pose.position.z - pose.pose.position.z);
     return error;
   }
 
