@@ -24,8 +24,13 @@ int main (int argc, char** argv) {
   ros::NodeHandle nh;
   ros::Subscriber odom_sub = nh.subscribe("/zed/odom", 10, nav_to_geometry);
 
-  pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/vision_pose/pose",10);
+  pose_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/vision_pose/pose",10);
   pose_cov_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/vision_pose/pose_cov",10);
+  //while (ros::ok()) {
+  //  ros::Duration(0.5).sleep();
+  //  ros::spinOnce();
+  //}
   ros::spin();
+
   return 0;
 }
