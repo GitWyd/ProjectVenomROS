@@ -12,8 +12,8 @@ find_package(catkin REQUIRED
 )
 
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES venom_ros
+  INCLUDE_DIRS include
+  LIBRARIES venom_ros
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -23,10 +23,10 @@ include_directories(
  ${catkin_INCLUDE_DIRS}
 )
 
-## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/venom_ros.cpp
-# )
+# Declare a C++ library
+add_library(${PROJECT_NAME}
+  include/Navigator.cpp
+)
 
 ## Declare a C++ executable
 add_executable(offb_node src/offb_node.cpp)
@@ -39,7 +39,7 @@ add_executable(fake_ai_node src/fake_ai_node.cpp)
 target_link_libraries(fake_ai_node ${catkin_LIBRARIES})
 
 add_executable(navigation_node src/navigation_node.cpp)
-target_link_libraries(navigation_node ${catkin_LIBRARIES})
+target_link_libraries(navigation_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 add_executable(vision_pose_converter src/vision_pose_converter.cpp)
 target_link_libraries(vision_pose_converter ${catkin_LIBRARIES})
