@@ -14,9 +14,15 @@
 #define VENOM_NAVIGATOR_H
 namespace venom {
 
-class VenomNavigator {
+enum NavigatorStatus {
+  OFF = 0,
+  IDLE = 1,
+  BUSY = 2,
+};
+
+class Navigator {
 public:
-  VenomNavigator() {
+  Navigator() {
 
     setpoint_.pose.position.x = 0.0; 
     setpoint_.pose.position.y = 0.0;
@@ -33,9 +39,9 @@ public:
     arming_client_ = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
     set_mode_client_ = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 
-    pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, &VenomNavigator::PoseCallback, this);
-    state_sub_ = nh.subscribe<mavros_msgs::State>("mavros/state", 10, &VenomNavigator::StateCallback, this);
-    command_sub_ = nh.subscribe<std_msgs::Char>("/venom/high_level", 10, &VenomNavigator::CommandCallback, this);
+    pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, &Navigator::PoseCallback, this);
+    state_sub_ = nh.subscribe<mavros_msgs::State>("mavros/state", 10, &Navigator::StateCallback, this);
+    command_sub_ = nh.subscribe<std_msgs::Char>("/venom/high_level", 10, &Navigator::CommandCallback, this);
 
     setpoint_pub_ = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
 
@@ -46,15 +52,20 @@ public:
     }
   }
 
-  ~VenomNavigator() {
+  ~Navigator() {
     pose_sub_.shutdown();
     state_sub_.shutdown();
     command_sub_.shutdown();
     Land();
   }
 
-  bool Ok() {
-      return state_.connected;
+  NavigatorStatus GetStatus() {
+    if (!state_.connected || !nav_active_)
+      return NavigatorStatus::OFF;
+    else if (Error(setpoint_) > tolerence)
+      return NavigatorStatus::BUSY;
+    else
+      return NavigatorStatus::IDLE;
   }
 
   void TakeOff(double h = 1.0) {
@@ -181,7 +192,7 @@ private:
       return false;
     }
     nav_active_ = true;
-    navigate_ = std::thread(&VenomNavigator::NavProcess, this);
+    navigate_ = std::thread(&Navigator::NavProcess, this);
     return true;
   }
 
@@ -198,7 +209,7 @@ private:
   void NavProcess() {
     ros::Duration d(0.1);
     geometry_msgs::PoseStamped nav_setpoint = setpoint_;
-    while (ros::ok() && Ok() && nav_active_) {
+    while (ros::ok() && GetStatus() != NavigatorStatus::OFF) {
       //ROS_DEBUG("NavProcess heartbeats");
       if (Error( nav_setpoint ) < tolerence)
 	nav_setpoint = setpoint_;
