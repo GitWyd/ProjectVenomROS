@@ -26,6 +26,8 @@ public:
     setpoint_.pose.orientation.z = 0.0;
     setpoint_.pose.orientation.w = 0.0;
 
+    nav_active_ =false;
+
     // Initialize ROS objects
     ros::NodeHandle nh;
     arming_client_ = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
@@ -43,20 +45,19 @@ public:
         ROS_INFO("Waiting for FCU connection");
     }
   }
+
   ~VenomNavigator() {
     pose_sub_.shutdown();
     state_sub_.shutdown();
     command_sub_.shutdown();
+    Land();
   }
 
   bool Ok() {
-    if (state_.mode == "OFFBOARD")
-      return state_.connected && state_.armed;
-    else
       return state_.connected;
   }
 
-  void TakeOff() {
+  void TakeOff(double h = 1.0) {
     mavros_msgs::SetMode offb_set_mode;
     offb_set_mode.request.custom_mode = "OFFBOARD";
     set_mode_client_.call(offb_set_mode);
@@ -68,63 +69,70 @@ public:
 
     setpoint_.pose.position.x = 0.0; 
     setpoint_.pose.position.y = 0.0;
-    setpoint_.pose.position.z = 1.0;
+    setpoint_.pose.position.z = h;
     setpoint_.pose.orientation.x = 0.0;
     setpoint_.pose.orientation.y = 0.0;
     setpoint_.pose.orientation.z = 0.0;
     setpoint_.pose.orientation.w = 0.0;
 
-    for (int i = 0; i < 300; i++) {
+    ROS_INFO("Buffering setpoints (3 sec)...");
+    ros::Duration d(0.1);
+    for (int i = 0; i < 30; i++) {
       setpoint_pub_.publish(setpoint_);
       ros::spinOnce();
-      ros::Duration(0.1);
-      ROS_INFO("Buffering");
+      d.sleep();
     }
+    ROS_INFO("Buffer done");
 
     if (!state_.connected) {
-      ROS_INFO("Not connected");
+      ROS_ERROR("Not connected");
       return;
     }
-    if( set_mode_client_.call(offb_set_mode) && offb_set_mode.response.mode_sent )
+    if (set_mode_client_.call(offb_set_mode) && offb_set_mode.response.mode_sent )
       ROS_INFO("Offboard enabled");
-    if( arming_client_.call(arm_cmd) && arm_cmd.response.success)
+    if (arming_client_.call(arm_cmd) && arm_cmd.response.success)
       ROS_INFO("Vehicle armed");
-
-    navigate_ = std::thread(&VenomNavigator::NavProcess, this);
+    if (InitNavProcess() )
+      ROS_INFO("Init SUCCESS");
   }
 
   void Land() {
+    if (!EndNavProcess()) {
+      ROS_DEBUG("Thread not running");
+      return;
+    }
     setpoint_.pose.position.x = 0.0; // Racing condition!! Probably need to synchronize
     setpoint_.pose.position.y = 0.0;
-    setpoint_.pose.position.z = 0.0;
+    setpoint_.pose.position.z = 0.5;
 
-    while (Error(setpoint_) > 0.01) {
+    ROS_INFO("Landing...");
+    ros::Duration d(0.1);
+    while (Error(setpoint_) > tolerence) {
+      setpoint_pub_.publish(setpoint_);
       ros::spinOnce();
-      ros::Duration(0.1).sleep();
-      ROS_INFO("Landing");
+      d.sleep();
     }
 
     if (!state_.connected) {
-      ROS_INFO("Not connected");
+      ROS_ERROR("Not connected");
       return;
     }
 
     mavros_msgs::SetMode offb_set_mode;
+    //offb_set_mode.request.custom_mode = "AUTO.LAND";
     offb_set_mode.request.custom_mode = "STABILIZED";
 
     mavros_msgs::CommandBool arm_cmd;
     arm_cmd.request.value = true;
 
-    if( arming_client_.call(arm_cmd) && arm_cmd.response.success)
-      ROS_INFO("Vehicle disarmed");
     if( set_mode_client_.call(offb_set_mode) && offb_set_mode.response.mode_sent )
-      ROS_INFO("Back to stabilized mode");
-    exit_ = true;
-    navigate_.join();
+      ROS_INFO("Switched to STABILIZED mode");
+    else
+      ROS_ERROR("Fail to switch mode");
   }
 
   void SetPoint(const geometry_msgs::PoseStamped& ps) {
-    setpoint_pub_.publish(ps);
+    setpoint_ = ps;
   }
 
   double Error(geometry_msgs::PoseStamped pose) {
@@ -163,37 +171,42 @@ private:
   }
 
   // Separate thread to control setpoint_
-  bool exit_;
+  bool nav_active_ = false;
   std::thread navigate_;
-  void NavProcess() {
-    ros::Duration t(0.1);
-    float offset = 0.2;
-    while (ros::ok() && Ok() && !exit_ ) {
-      if (Error( setpoint_ ) < 0.01) {
-	switch (command_) {
-	  case 'w':
-	  case 'W':
-	    setpoint_.pose.position.x += offset;
-	    break;
-	  case 's':
-	  case 'S':
-	    setpoint_.pose.position.x -= offset;
-	    break;
-	  case 'd':
-	  case 'D':
-	    setpoint_.pose.position.y -= offset;
-	    break;
-	  case 'a':
-	  case 'A':
-	    setpoint_.pose.position.y += offset;
-	    break;
-	  case 'q':
-	    exit_ = true;
-	}
-      }
-      setpoint_pub_.publish(setpoint_);
-      t.sleep();
+  double tolerence = 0.15;
+
+  bool InitNavProcess() {
+    if (nav_active_) {
+      ROS_DEBUG("Thread already running");
+      return false;
     }
+    nav_active_ = true;
+    navigate_ = std::thread(&VenomNavigator::NavProcess, this);
+    return true;
+  }
+
+  bool EndNavProcess() {
+    if (!nav_active_) {
+      ROS_DEBUG("Thread not running");
+      return false;
+    }
+    nav_active_ = false;
+    navigate_.join();
+    return true;
+  }
+
+  void NavProcess() {
+    ros::Duration d(0.1);
+    geometry_msgs::PoseStamped nav_setpoint = setpoint_;
+    while (ros::ok() && Ok() && nav_active_) {
+      //ROS_DEBUG("NavProcess heartbeats");
+      if (Error( nav_setpoint ) < tolerence)
+	nav_setpoint = setpoint_;
+      setpoint_pub_.publish(nav_setpoint);
+      d.sleep();
+    }
+    if (nav_active_)
+      ROS_WARN("NavProcess terminated with exception");
   }
 };
 } // namespace venom
