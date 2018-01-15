@@ -36,7 +36,7 @@ add_executable(offb_circle src/offb_circle.cpp)
 target_link_libraries(offb_circle ${catkin_LIBRARIES})
 
 add_executable(fake_ai_node src/fake_ai_node.cpp)
-target_link_libraries(fake_ai_node ${catkin_LIBRARIES})
+target_link_libraries(fake_ai_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 add_executable(navigation_node src/navigation_node.cpp)
 target_link_libraries(navigation_node ${catkin_LIBRARIES} ${PROJECT_NAME})
