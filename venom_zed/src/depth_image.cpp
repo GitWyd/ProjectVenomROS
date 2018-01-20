@@ -123,7 +123,7 @@ void saveProcess() {
 
         if (param->askSavePC) {
             std::cout << "Saving Point Cloud " << param->saveName << " in " << getFormatNamePC(param->PC_Format) << " ..." << flush;
-            sl::savePointCloudAs(*zed_ptr, param->PC_Format, param->saveName, true, false);
+            sl::savePointCloudAs(*zed_ptr, param->PC_Format, param->saveName, true);
             std::cout << "done" << endl;
             param->askSavePC = false;
         }

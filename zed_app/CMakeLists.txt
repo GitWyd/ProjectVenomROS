@@ -92,7 +92,7 @@ target_link_libraries(pcl_viewer ${catkin_LIBRARIES}
 			${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(depth_viewer ${catkin_LIBRARIES} ${ZED_LIBRARIES}
                         ${OpenCV_LIBS}
-                        ${CUDA_LIBRARIES} ${CUDA_npps_LIBRARY} ${CUDA_nppi_LIBRARY} ${CMAKE_THREAD_LIBS_INIT}
+                        ${CUDA_LIBRARIES} ${CUDA_npps_LIBRARY} ${CMAKE_THREAD_LIBS_INIT}
 )
 target_link_libraries(obstacle_detect ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
 #############

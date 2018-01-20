@@ -146,7 +146,7 @@ void VenomZed::saveProcess() {
 	<< VenomZed::getFormatNamePC(save_param_.pc_format)
 	<< " ..." << std::flush;
       sl::savePointCloudAs(zed_, save_param_.pc_format,
-	  save_param_.save_name, true, false);
+	  save_param_.save_name, true);
       std::cout << "done" << std::endl;
       save_param_.ask_save_pc = false;
     }
