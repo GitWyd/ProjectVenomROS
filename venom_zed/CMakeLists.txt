@@ -32,16 +32,19 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${ZED_INCLUDE_DIRS}
 )
 
+set(CUDA_NPP_LIBRARIES_ZED ${CUDA_npp_LIBRARY} ${CUDA_npps_LIBRARY})   
+
 add_executable( example src/example.cpp)
-target_link_libraries( example ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries( example ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS} )
 
 add_executable( depth_image src/depth_image.cpp)
 target_link_libraries( depth_image ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
 
-add_executable( quaternion_test src/quaternion_test.cpp)
-target_link_libraries( quaternion_test ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
+#add_executable( quaternion_test src/quaternion_test.cpp)
+#target_link_libraries( quaternion_test ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS}) ${CUDA_NPP_LIBRARIES_ZED})
 
-add_executable( venom_zed_test src/venom_zed_test.cpp)
-target_link_libraries( venom_zed_test ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
+#add_executable( venom_zed_test src/venom_zed_test.cpp)
+#target_link_libraries( venom_zed_test ${catkin_LIBRARIES} ${ZED_LIBRARIES} ${OpenCV_LIBS})
