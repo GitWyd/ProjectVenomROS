@@ -17,19 +17,26 @@ $ mv ~/src/Firmware ~/Documents
 $ rmdir ~/src
 ```
 
-2. mavros: we will use `catkin_make` instead of `rosbuild`. Therefore, remove the directory created by ubuntu_ros_gazebo.sh and install mavros via apt-get.
+2. [geographiclib](https://github.com/mavlink/mavros/blob/master/mavros/scripts/install_geographiclib_datasets.sh):
+```
+$ wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
+$ chmod +x install_geographiclib_datasets.sh
+$ sudo ./install_geographiclib_datasets.sh
+```
+
+3. mavros: we will use `catkin_make` instead of `rosbuild`. Therefore, remove the directory created by ubuntu_ros_gazebo.sh and install mavros via apt-get.
 ```
 $ rm -rf ~/catkin_make
 $ sudo apt-get install ros-kinetic-mavros ros-kinetic-extras
 ```
 
-3. [CUDA 9.0](https://developer.nvidia.com/cuda-downloads): remember to setup library path.
+4. [CUDA 9.0](https://developer.nvidia.com/cuda-downloads): remember to setup library path.
 ```
 $ echo 'export PATH=/usr/local/cuda-9.0/bin${PATH:+:${PATH}}' >> ~/.bashrc
 $ echo 'export LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' >> ~/.bashrc
 ```
 
-4. [ZED SDK 2.2.1](https://www.stereolabs.com/developers/release/2.2/): please choose **CUDA 9 -> ZED SDK for Linux** to download.
+5. [ZED SDK 2.2.1](https://www.stereolabs.com/developers/release/2.2/): please choose **CUDA 9 -> ZED SDK for Linux** to download.
 ```
 $ mkdir -p ~/catkin_ws/src
 $ unzip zed-ros-wrapper-2.2.x.zip -d ~/catkin_make/src/zed-ros-wrapper-2.2
@@ -37,15 +44,15 @@ $ cd ~/catkin_ws
 $ catkin_make
 ```
 
-5. [zed-ros-wrapper](https://github.com/stereolabs/zed-ros-wrapper/releases): please choose v2.2.x download. After download, unzip the file and `catkin_make` it.
+6. [zed-ros-wrapper](https://github.com/stereolabs/zed-ros-wrapper/releases): please choose v2.2.x download. After download, unzip the file and `catkin_make` it.
 
 ## Installation
 
 1. Download this repository
 ```
-mkdir -p ~/catkin_ws/src
-cd ~/catkin_ws/src
-git clone git@github.com:GitWyd/ProjectVenomROS.git
+$ mkdir -p ~/catkin_ws/src
+$ cd ~/catkin_ws/src
+$ git clone git@github.com:GitWyd/ProjectVenomROS.git
 ```
 
 2. Compile
@@ -70,7 +77,7 @@ $ roslaunch zed_wrapper zed.launch
 $ roslaunch venom_offb sitl.launch
 ```
 
-3. We are ready to take off!! Run this command and you should see the drone hover at height 3.0 meter. Press 'q' to exit.
+3. We are ready to take off!! Run this command and you should see the drone hover at height 3.0 meter. Press 'q' to land.
 ```
 $ rosrun venom_offb navigation_node
 ```
