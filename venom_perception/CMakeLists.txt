@@ -59,3 +59,6 @@ target_link_libraries(perception_node ${catkin_LIBRARIES})
 
 add_executable(save_pcd src/save_pcd.cpp)
 target_link_libraries(save_pcd ${catkin_LIBRARIES})
+
+add_executable(cloud_pose_recorder src/cloud_pose_recorder.cpp)
+target_link_libraries(cloud_pose_recorder ${catkin_LIBRARIES})

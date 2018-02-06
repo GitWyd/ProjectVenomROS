@@ -39,6 +39,12 @@ public:
     sensor_msgs::PointCloud2::ConstPtr output(cloud_ptr);
     return output;
   }
+  void SavePose(const std::string& filename) {
+    std::ofstream os;
+    os.open(filename);
+    os << pose_;
+    os.close();
+  }
 
 private:
   bool cloud_flag_;
