@@ -1,3 +1,6 @@
+// example.cpp: shows how to instantiate a Perceiver class
+// Author: Yan-Song Chen, Columbia University
+// Date: Feb 7, 2017
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>

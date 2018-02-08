@@ -36,29 +36,14 @@ include_directories(
 #   src/${PROJECT_NAME}/venom_ros.cpp
 # )
 
-link_directories(${OpenCV_LIBS})
+set(link_directories ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 ## Declare a C++ executable
-add_executable(visual_odometry src/visual_odometry.cpp)
-target_link_libraries(visual_odometry ${catkin_LIBRARIES})
+add_executable(depth_map src/depth_map.cpp)
+target_link_libraries(depth_map ${link_directories})
 
-add_executable(visual_pose src/visual_pose.cpp)
-target_link_libraries(visual_pose ${catkin_LIBRARIES})
+add_executable(example src/example.cpp)
+target_link_libraries(example ${catkin_LIBRARIES})
 
-add_executable(cloud_reader src/cloud_reader.cpp)
-target_link_libraries(cloud_reader ${catkin_LIBRARIES})
-
-#add_executable(depth_map src/depth_map.cpp)
-#target_link_libraries(depth_map ${catkin_LIBRARIES})
-
-add_executable(cv_test src/cv_test.cpp)
-target_link_libraries(cv_test ${catkin_LIBRARIES} ${OpenCV_LIBS})
-
-add_executable(perception_node src/perception_node.cpp)
-target_link_libraries(perception_node ${catkin_LIBRARIES})
-
-add_executable(save_pcd src/save_pcd.cpp)
-target_link_libraries(save_pcd ${catkin_LIBRARIES})
-
-add_executable(cloud_pose_recorder src/cloud_pose_recorder.cpp)
-target_link_libraries(cloud_pose_recorder ${catkin_LIBRARIES})
+add_executable(save_zed src/save_zed.cpp)
+target_link_libraries(save_zed ${catkin_LIBRARIES})

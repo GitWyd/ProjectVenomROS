@@ -1,8 +1,10 @@
-/*
- * This program is originally from "4. An example ROS node".
- * http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages
- *
- */
+// depth_image.cpp: subscribe and display depth image from ZED
+// Author: Yan-Song Chen
+// Date: Feb 7, 2071
+//
+// This program is originally from "4. An example ROS node".
+// http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages
+
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <opencv2/highgui/highgui.hpp>

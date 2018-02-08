@@ -109,8 +109,8 @@ void Navigator::Land() {
   }
 
   mavros_msgs::SetMode offb_set_mode;
-  //offb_set_mode.request.custom_mode = "AUTO.LAND";
-  offb_set_mode.request.custom_mode = "STABILIZED";
+  offb_set_mode.request.custom_mode = "AUTO.LAND";
+  //offb_set_mode.request.custom_mode = "STABILIZED";
 
   mavros_msgs::CommandBool arm_cmd;
   arm_cmd.request.value = true;
