@@ -47,3 +47,6 @@ target_link_libraries(example ${catkin_LIBRARIES})
 
 add_executable(save_zed src/save_zed.cpp)
 target_link_libraries(save_zed ${catkin_LIBRARIES})
+
+add_executable(local_map src/local_map.cpp)
+target_link_libraries(local_map ${catkin_LIBRARIES})
