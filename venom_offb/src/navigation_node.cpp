@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
   int rc;
 
   nav = new venom::Navigator();
-  nav->TakeOff(2.0);
+  nav->TakeOff(1.0);
   ros::Duration d(0.5);
   while (ros::ok() && nav->GetStatus() != venom::NavigatorStatus::OFF) {
     int rc = venom::wait_key(0,1000,c);

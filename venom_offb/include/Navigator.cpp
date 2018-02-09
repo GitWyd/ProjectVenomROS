@@ -97,7 +97,7 @@ void Navigator::Land() {
 
   ROS_INFO("Landing...");
   ros::Duration d(0.1);
-  while (Error(setpoint_) > tolerence) {
+  while (Error(setpoint_) > 0.3) {
     setpoint_pub_.publish(setpoint_);
     ros::spinOnce();
     d.sleep();
@@ -116,7 +116,7 @@ void Navigator::Land() {
   arm_cmd.request.value = true;
 
   if( set_mode_client_.call(offb_set_mode) && offb_set_mode.response.mode_sent )
-    ROS_INFO("Switched to STABILIZED mode");
+    ROS_INFO("Switched to AUTO.LAND mode");
   else
     ROS_ERROR("Fail to switch mode");
 }
@@ -126,6 +126,9 @@ double Navigator::Error(geometry_msgs::PoseStamped pose) {
   error += fabs(pose_.pose.position.x - pose.pose.position.x);
   error += fabs(pose_.pose.position.y - pose.pose.position.y);
   error += fabs(pose_.pose.position.z - pose.pose.position.z);
+  ROS_INFO_STREAM("current: \n" << pose_.pose.position);
+  ROS_INFO_STREAM("command: \n" << pose.pose.position);
+  ROS_INFO("-------------------");
   return error;
 }
 
