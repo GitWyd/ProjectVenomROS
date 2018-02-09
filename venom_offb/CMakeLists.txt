@@ -29,9 +29,6 @@ add_library(${PROJECT_NAME}
 )
 
 ## Declare a C++ executable
-add_executable(offb_node src/offb_node.cpp)
-target_link_libraries(offb_node ${catkin_LIBRARIES})
-
 add_executable(offb_circle src/offb_circle.cpp)
 target_link_libraries(offb_circle ${catkin_LIBRARIES})
 

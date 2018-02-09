@@ -1,5 +1,0 @@
-<launch>
-  <arg name="rvizconfig" default="$(find venom_zed)/config/marker.rviz" />
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" />
-  <node name="depth_image" pkg="venom_zed" type="depth_image" />
-</launch>
