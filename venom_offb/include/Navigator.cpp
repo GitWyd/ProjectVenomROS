@@ -93,7 +93,7 @@ void Navigator::Land() {
   }
   setpoint_.pose.position.x = 0.0; // Racing condition!! Probably need to synchronize
   setpoint_.pose.position.y = 0.0;
-  setpoint_.pose.position.z = 0.5;
+  setpoint_.pose.position.z = 0.05;
 
   ROS_INFO("Landing...");
   ros::Duration d(0.1);
