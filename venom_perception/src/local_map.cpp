@@ -11,26 +11,12 @@
 #include <string> // std
 #include <fstream>
 #include <vector>
-#include <glob.h>
 #include <math.h>
 #include <highgui.h> // opencv
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense> // eigen
 #include <Eigen/Geometry> 
-
-
-// https://stackoverflow.com/questions/8401777/simple-glob-in-c-on-unix-system 
-inline std::vector<std::string> glob(const std::string& pat){
-  glob_t glob_result;
-  glob(pat.c_str(),GLOB_TILDE,NULL,&glob_result);
-  std::vector<std::string> ret;
-  for(unsigned int i=0;i<glob_result.gl_pathc;++i){
-      ret.push_back(std::string(glob_result.gl_pathv[i]));
-  }
-  globfree(&glob_result);
-  return ret;
-}
 
 
 int read_record(std::string cloud_src,
@@ -85,45 +71,41 @@ int read_record(std::string cloud_src,
   return 0;
 }
 
-int sp = 20, sa = 40; // map resolution
+int sp = 200, sa = 400; // map resolution
+double max_dist = 8.0;
 
 inline int idx(double x, double m, int s) {
   return fmod(x+m,m) / m * s;
 }
 
+cv::Mat map(sp,sa,CV_8UC3, cv::Vec3b(155,155,155)); // gray scale image format
 void build_map( pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud ) {
-  //ROS_INFO("build map: let's rock");
-  //ROS_INFO_STREAM("cloud size = " << cloud->size());
-  //ROS_INFO_STREAM("first point " << cloud->points[0].x << ", " << cloud->points[0].y);
-  cv::Mat map(sp,sa,CV_8UC1, cv::Scalar(256)); // gray scale image format
   for (unsigned int i = 0; i < cloud->size(); i++) {
     pcl::PointXYZRGB& p = cloud->points[i];
     double polar = std::atan2(p.z, std::sqrt(p.y*p.y+p.x*p.x));
     double azimuth = std::atan2(p.y, p.x);
     int ip = idx(polar, M_PI, sp);
     int ia = idx(azimuth, 2.0 * M_PI, sa);
-    map.at<uchar>(ip,ia) = std::sqrt(p.x*p.x+p.y*p.y+p.z*p.z);
+    uchar dist = 256 * (std::sqrt(p.x*p.x+p.y*p.y+p.z*p.z)/max_dist);
+    map.at<cv::Vec3b>(ip,ia) = cv::Vec3b(dist, 0, 0);
   }
   cv::imwrite( "map.png", map);
-  //cv::namedWindow("map", CV_WINDOW_AUTOSIZE);
-  //cv::imshow("map", map);
-  //cv::waitKey(0);
-  //cv::destroyAllWindows();
 }
 
 int main(int argc, char** argv) {
 
-  std::vector<std::string> clouds({"samples/cloud_15.pcd",
-                                   "samples/cloud_20.pcd",
-                                   "samples/cloud_25.pcd",
-                                   "samples/cloud_30.pcd"});
-  std::vector<std::string> poses({"samples/pose_15.txt",
-                                  "samples/pose_20.txt",
-                                  "samples/pose_25.txt",
-                                  "samples/pose_30.txt"});
+  std::string cloud_prefix = "samples/cloud_", cloud_postfix = ".pcd";
+  std::string pose_prefix = "samples/pose_", pose_postfix = ".txt";
+
+  std::vector<std::string> clouds, poses;
+  for (int i = 1; i < argc; i++) {
+    clouds.push_back(cloud_prefix+std::string(argv[i])+cloud_postfix);
+    poses.push_back(pose_prefix+std::string(argv[i])+pose_postfix);
+  }
+
   pcl::visualization::PCLVisualizer viewer("Matrix transform");
 
-  for (int i = 2; i < 3; i++) {
+  for (int i = 0; i < clouds.size(); i++) {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     Eigen::Vector3f translation;
     Eigen::Affine3f transform;
@@ -131,16 +113,12 @@ int main(int argc, char** argv) {
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
     transform.translation() << translation;
-    pcl::transformPointCloud (*cloud, *transformed, transform);
+    pcl::transformPointCloud (*cloud, *transformed, transform.inverse());
 
     build_map(transformed);
 
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> white (cloud, 255, 255, 255);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red (transformed, 230, 20, 20); 
-    //viewer.addPointCloud(cloud, white, "original"+std::to_string(i));
     viewer.addPointCloud(transformed, "transformed"+std::to_string(i));
   }
-  //viewer.addPointCloud(transformed2, blue, "transformed2");
   while (!viewer.wasStopped()) {
     viewer.spinOnce();
   }
