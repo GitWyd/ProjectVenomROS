@@ -7,10 +7,15 @@
 #include <pcl/common/transforms.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
 #include <string> // std
 #include <fstream>
 #include <vector>
 #include <glob.h>
+#include <math.h>
+#include <highgui.h> // opencv
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
 #include <Eigen/Dense> // eigen
 #include <Eigen/Geometry> 
 
@@ -80,6 +85,32 @@ int read_record(std::string cloud_src,
   return 0;
 }
 
+int sp = 20, sa = 40; // map resolution
+
+inline int idx(double x, double m, int s) {
+  return fmod(x+m,m) / m * s;
+}
+
+void build_map( pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud ) {
+  //ROS_INFO("build map: let's rock");
+  //ROS_INFO_STREAM("cloud size = " << cloud->size());
+  //ROS_INFO_STREAM("first point " << cloud->points[0].x << ", " << cloud->points[0].y);
+  cv::Mat map(sp,sa,CV_8UC1, cv::Scalar(256)); // gray scale image format
+  for (unsigned int i = 0; i < cloud->size(); i++) {
+    pcl::PointXYZRGB& p = cloud->points[i];
+    double polar = std::atan2(p.z, std::sqrt(p.y*p.y+p.x*p.x));
+    double azimuth = std::atan2(p.y, p.x);
+    int ip = idx(polar, M_PI, sp);
+    int ia = idx(azimuth, 2.0 * M_PI, sa);
+    map.at<uchar>(ip,ia) = std::sqrt(p.x*p.x+p.y*p.y+p.z*p.z);
+  }
+  cv::imwrite( "map.png", map);
+  //cv::namedWindow("map", CV_WINDOW_AUTOSIZE);
+  //cv::imshow("map", map);
+  //cv::waitKey(0);
+  //cv::destroyAllWindows();
+}
+
 int main(int argc, char** argv) {
 
   std::vector<std::string> clouds({"samples/cloud_15.pcd",
@@ -92,7 +123,7 @@ int main(int argc, char** argv) {
                                   "samples/pose_30.txt"});
   pcl::visualization::PCLVisualizer viewer("Matrix transform");
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 2; i < 3; i++) {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     Eigen::Vector3f translation;
     Eigen::Affine3f transform;
@@ -101,6 +132,8 @@ int main(int argc, char** argv) {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformed(new pcl::PointCloud<pcl::PointXYZRGB>);
     transform.translation() << translation;
     pcl::transformPointCloud (*cloud, *transformed, transform);
+
+    build_map(transformed);
 
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> white (cloud, 255, 255, 255);
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red (transformed, 230, 20, 20); 
