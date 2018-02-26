@@ -29,6 +29,8 @@ public:
   void Land();
   void SetPoint(const geometry_msgs::PoseStamped& ps){ setpoint_ = ps;}
   double Error(geometry_msgs::PoseStamped pose);
+  void SetTolerence(double tol);
+  void SetVerbose(bool verbose);
 
 private:
   mavros_msgs::State state_;
@@ -51,11 +53,13 @@ private:
   // Separate thread to control setpoint_
   bool nav_active_ = false;
   std::thread navigate_;
-  double tolerence = 0.15;
+  double tolerence_ = 0.15;
 
   bool InitNavProcess();
   bool EndNavProcess();
   void NavProcess();
+
+  bool verbose_ = false;
 };
 } // namespace venom
 #endif

@@ -9,6 +9,7 @@ find_package(catkin REQUIRED
 	geometry_msgs
 	nav_msgs
 	mavros_msgs
+	eigen_conversions
 )
 
 catkin_package(
@@ -40,3 +41,6 @@ target_link_libraries(navigation_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 add_executable(vision_pose_converter src/vision_pose_converter.cpp)
 target_link_libraries(vision_pose_converter ${catkin_LIBRARIES})
+
+add_executable(circle src/circle.cpp)
+target_link_libraries(circle ${catkin_LIBRARIES} ${PROJECT_NAME})

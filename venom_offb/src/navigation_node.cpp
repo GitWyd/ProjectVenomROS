@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     ros::spinOnce();
   }
 
-  std::cout << "quit and land\n";
+  ROS_INFO("quit and land");
   nav->Land();
   delete nav;
   return 0;

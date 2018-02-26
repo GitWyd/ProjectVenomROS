@@ -41,7 +41,7 @@ Navigator::~Navigator() {
 NavigatorStatus Navigator::GetStatus() {
   if (!state_.connected || !nav_active_)
     return NavigatorStatus::OFF;
-  else if (Error(setpoint_) > tolerence)
+  else if (Error(setpoint_) > tolerence_)
     return NavigatorStatus::BUSY;
   else
     return NavigatorStatus::IDLE;
@@ -126,9 +126,11 @@ double Navigator::Error(geometry_msgs::PoseStamped pose) {
   error += fabs(pose_.pose.position.x - pose.pose.position.x);
   error += fabs(pose_.pose.position.y - pose.pose.position.y);
   error += fabs(pose_.pose.position.z - pose.pose.position.z);
-  ROS_INFO_STREAM("current: \n" << pose_.pose.position);
-  ROS_INFO_STREAM("command: \n" << pose.pose.position);
-  ROS_INFO("-------------------");
+  if (verbose_) {
+    ROS_INFO_STREAM("current: \n" << pose_.pose.position);
+    ROS_INFO_STREAM("command: \n" << pose.pose.position);
+    ROS_INFO("-------------------");
+  }
   return error;
 }
 
@@ -157,13 +159,21 @@ void Navigator::NavProcess() {
   geometry_msgs::PoseStamped nav_setpoint = setpoint_;
   while (ros::ok() && GetStatus() != NavigatorStatus::OFF) {
     //ROS_DEBUG("NavProcess heartbeats");
-    if (Error( nav_setpoint ) < tolerence)
+    if (Error( nav_setpoint ) < tolerence_)
       nav_setpoint = setpoint_;
     setpoint_pub_.publish(nav_setpoint);
     d.sleep();
   }
   if (nav_active_)
     ROS_WARN("NavProcess terminated with exception");
+}
+
+void Navigator::SetTolerence(double tol) {
+  tolerence_ = tol;
+}
+
+void Navigator::SetVerbose(bool verbose) {
+  verbose_ = verbose;
 }
 
 } // namespace venom
