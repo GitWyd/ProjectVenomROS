@@ -156,12 +156,8 @@ bool Navigator::EndNavProcess() {
 
 void Navigator::NavProcess() {
   ros::Duration d(0.1);
-  geometry_msgs::PoseStamped nav_setpoint = setpoint_;
-  while (ros::ok() && GetStatus() != NavigatorStatus::OFF) {
-    //ROS_DEBUG("NavProcess heartbeats");
-    if (Error( nav_setpoint ) < tolerence_)
-      nav_setpoint = setpoint_;
-    setpoint_pub_.publish(nav_setpoint);
+  while (ros::ok() && GetStatus()) {
+    setpoint_pub_.publish(setpoint_);
     d.sleep();
   }
   if (nav_active_)
