@@ -129,6 +129,7 @@ double Navigator::Error(geometry_msgs::PoseStamped pose) {
   if (verbose_) {
     ROS_INFO_STREAM("current: \n" << pose_.pose.position);
     ROS_INFO_STREAM("command: \n" << pose.pose.position);
+    ROS_INFO_STREAM("error: " << error);
     ROS_INFO("-------------------");
   }
   return error;

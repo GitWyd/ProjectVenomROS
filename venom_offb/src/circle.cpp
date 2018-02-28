@@ -39,7 +39,10 @@ int main(int argc, char **argv) {
   char c = ' ';
   int rc;
 
-  if (argc < 4) return 1;
+  if (argc < 4) {
+    ROS_ERROR("Arguments should be radius, resolution and tolerence");
+    return 1;
+  }
   double radius = atof(argv[1]);
   double res = atof(argv[2]);
   double tol = atof(argv[3]);
@@ -49,14 +52,14 @@ int main(int argc, char **argv) {
   nav = new venom::Navigator();
   nav->SetVerbose(true);
   nav->TakeOff(1.0);
-  geometry_msgs::PoseStamped check_point;
-  check_point.pose.position.x = check_point.pose.position.y = 0;
-  check_point.pose.position.z = 1.0;
-  //check_point.pose.orientation.w = check_point.pose.orientation.x 
-  //= check_point.pose.orientation.y = check_point.pose.orientation.z = 0;
 
   ros::Duration d(0.05);
+  while (ros::ok() && nav->GetStatus() != venom::NavigatorStatus::IDLE) {
+    ros::spinOnce();
+    d.sleep();
+  }
 
+  nav->SetTolerence(tol);
   while (ros::ok() && nav->GetStatus() != venom::NavigatorStatus::OFF) {
     int rc = venom::wait_key(0,1000,c);
     if (c == 'q' || rc < 0)
@@ -72,11 +75,15 @@ int main(int argc, char **argv) {
     ros::spinOnce();
   }
 
-  ROS_INFO("quit and land");
 
-  nav->SetPoint(check_point);
-  while (ros::ok() && nav->Error(check_point) > 0.2)
+  nav->TakeOff(1.0); // TODO: this is bad... try to redesign the class pattern
+  nav->SetTolerence(0.1);
+  ROS_INFO("Back to 1 meter high");
+  while (ros::ok() && nav->GetStatus() != venom::NavigatorStatus::IDLE) {
     d.sleep();
+    ros::spinOnce();
+  }
+  ROS_INFO("Landing...");
 
   nav->Land();
   delete nav;
