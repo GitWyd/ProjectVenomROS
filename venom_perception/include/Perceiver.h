@@ -27,7 +27,8 @@ public:
     ros::NodeHandle nh;
     cloud_sub_ = nh.subscribe("/zed/point_cloud/cloud_registered", 10, &Perceiver::CloudCallback, this);
     odom_sub_ = nh.subscribe("/zed/odom", 10, &Perceiver::OdometryCallback, this);
-    img_sub_ = nh.subscribe("/zed/depth/depth_registered", 10, &Perceiver::DepthImageCallback, this);
+    depth_sub_ = nh.subscribe("/zed/depth/depth_registered", 10, &Perceiver::DepthImageCallback, this);
+    rgb_sub_ = nh.subscribe("/zed/rgb/image_rect_color",10,&Perceiver::RGBImageCallback, this);
   }
   void SavePointCloud(const std::string& filename) {
     pcl::io::savePCDFile (filename, pcl_cloud_);
@@ -46,9 +47,21 @@ public:
     os.close();
   }
 
+  bool RGBReady() {
+    return (rgb_ptr_ != NULL);
+  }
+  cv::Mat GetRGBImage() {
+    return cv::Mat(rgb_ptr_->image);
+  }
+
+  void SetVerbose(bool x) {
+    verbose_ = x;
+  }
+
 private:
   bool cloud_flag_;
   bool depth_flag_;
+  bool verbose_ = false;
   pcl::PCLPointCloud2 pcl_cloud_; // Filtered and processed
   ros::Subscriber cloud_sub_;
   void CloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
@@ -72,7 +85,8 @@ private:
     }
     pcl::PointCloud<pcl::PointXYZ> pcl_xyz;
     pcl::fromPCLPointCloud2(pcl_cloud_, pcl_xyz);
-    std::cout << "Number of point: " << pcl_xyz.size() << std::endl;
+    if (verbose_)
+     ROS_DEBUG_STREAM("Number of point: " << pcl_xyz.size());
     if (pcl_xyz.size() < 5000)
       cloud_flag_ = false;
     else
@@ -87,7 +101,7 @@ private:
   }
 
 
-  ros::Subscriber img_sub_;
+  ros::Subscriber depth_sub_;
   cv_bridge::CvImagePtr cv_ptr;
   void DepthImageCallback(const sensor_msgs::ImageConstPtr& msg) {
     try {
@@ -104,13 +118,23 @@ private:
 	if (cv_ptr->image.at<int>(i,j) < 5)
 	  zero_count++;
     float zero_ratio = zero_count / cv_ptr->image.cols / cv_ptr->image.rows;
-    // TODO: remove these couts
-    //std::cout << "zero_count = " << zero_count << std::endl;
-    //std::cout << "Zero ratio = " << zero_ratio << std::endl;
     if (zero_ratio > 0.2)
       depth_flag_ = false;
     else
       depth_flag_ = true;
+  }
+
+  ros::Subscriber rgb_sub_;
+  cv_bridge::CvImagePtr rgb_ptr_;
+  void RGBImageCallback(const sensor_msgs::ImageConstPtr& msg) {
+    try {
+      rgb_ptr_ = cv_bridge::toCvCopy(msg);
+    } catch (cv_bridge::Exception& e) {
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
+    }
+    if (verbose_)
+      ROS_DEBUG_STREAM("image size: " << rgb_ptr_->image.rows << ", " << rgb_ptr_->image.cols);
   }
 };
 } // namespace venom

@@ -23,7 +23,7 @@ std::list<geometry_msgs::PoseStamped> circle_traj(double res, double r, double h
   for (double i = 0; i < res; i++) {
     Eigen::Affine3d t = Eigen::Affine3d::Identity();
     t.translation() << r*cos(theta), r*sin(theta), h;
-    //t.rotate (Eigen::AngleAxisd (theta+M_PI/2.0, Eigen::Vector3d::UnitZ()));
+    t.rotate (Eigen::AngleAxisd (theta+M_PI/2.0, Eigen::Vector3d::UnitZ()));
 
     geometry_msgs::PoseStamped cmd;
     tf::poseEigenToMsg(t, cmd.pose);

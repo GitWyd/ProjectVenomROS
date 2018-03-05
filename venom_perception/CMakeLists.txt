@@ -50,3 +50,6 @@ target_link_libraries(save_zed ${catkin_LIBRARIES})
 
 add_executable(local_map src/local_map.cpp)
 target_link_libraries(local_map ${link_directories})
+
+add_executable(detect_drone src/detect_drone.cpp)
+target_link_libraries(detect_drone ${link_directories})
