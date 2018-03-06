@@ -22,16 +22,20 @@
 #include "Perceiver.h"
 
 std::pair<int,int> begin, end;
-bool release = true;
+bool pressed = false;
+bool trigger = false;
 void mouse_callback(int event, int x, int y, int flags, void* userdata) {
-  if  ( event == cv::EVENT_LBUTTONDOWN ) {
-    std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
-  } else if  ( event == cv::EVENT_RBUTTONDOWN ) {
-    std::cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
-  } else if  ( event == cv::EVENT_MBUTTONDOWN ) {
-    std::cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
-  } else if ( event == cv::EVENT_MOUSEMOVE ) {
-    std::cout << "Mouse move over the window - position (" << x << ", " << y << ")" << std::endl;
+  if ( !pressed && event == cv::EVENT_LBUTTONDOWN) {
+    begin.first = x;
+    begin.second = y;
+    ROS_INFO_STREAM("begin = " << begin.first << ", " << begin.second);
+    pressed = true;
+  } else if (pressed && event == cv::EVENT_LBUTTONUP) {
+    end.first = x;
+    end.second = y;
+    ROS_INFO_STREAM("end = " << end.first << ", " << end.second);
+    pressed = false;
+    trigger = true;
   }
 }
 
@@ -45,8 +49,15 @@ int main (int argc, char** argv) {
   while (ros::ok() && key != 'q') {
     if (pcv.RGBReady()) {
       cv::Mat rgb = pcv.GetRGBImage();
+      cv::Point pt1(begin.first, begin.second);
+      cv::Point pt2(end.first, end.second);
+      cv::rectangle(rgb, pt1, pt2, cv::Scalar(0, 0, 255));
+      
       cv::imshow("drone_fpv",rgb);
       key = cv::waitKey(50);
+    }
+    if (trigger) {
+      pcv.MarkPoints(begin,end);
     }
     ros::spinOnce();
     rate.sleep();

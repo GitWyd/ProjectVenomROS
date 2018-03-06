@@ -2,8 +2,11 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <pcl_ros/point_cloud.h>
+#include <pcl/point_types.h>
 
 #include <pcl/io/pcd_io.h>
+#include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
@@ -29,6 +32,8 @@ public:
     odom_sub_ = nh.subscribe("/zed/odom", 10, &Perceiver::OdometryCallback, this);
     depth_sub_ = nh.subscribe("/zed/depth/depth_registered", 10, &Perceiver::DepthImageCallback, this);
     rgb_sub_ = nh.subscribe("/zed/rgb/image_rect_color",10,&Perceiver::RGBImageCallback, this);
+    cloud_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/venom/enemy_drone", 1);
+    start_.first = start_.second = end_.first = end_.second = 0;
   }
   void SavePointCloud(const std::string& filename) {
     pcl::io::savePCDFile (filename, pcl_cloud_);
@@ -58,13 +63,34 @@ public:
     verbose_ = x;
   }
 
+  void MarkPoints(std::pair<int,int> start, std::pair<int,int> end) {
+    start_ = start;
+    end_ = end;
+  }
+
 private:
   bool cloud_flag_;
   bool depth_flag_;
   bool verbose_ = false;
+  std::pair<int,int> start_, end_;
   pcl::PCLPointCloud2 pcl_cloud_; // Filtered and processed
   ros::Subscriber cloud_sub_;
+  ros::Publisher cloud_pub_; 
   void CloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
+    pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud_raw_;
+    pcl::fromROSMsg(*cloud_msg,pcl_cloud_raw_);
+    for (int i = start_.first; i < end_.first; i++) {
+      for (int j = start_.second; j < end_.second; j++) {
+        pcl::PointXYZRGB& temp = pcl_cloud_raw_.at(i,j);
+	temp.r = 255;
+	temp.g = 0;
+	temp.b = 0;
+      }
+    }
+    sensor_msgs::PointCloud2 enemy_cloud;
+    pcl::toROSMsg(pcl_cloud_raw_, enemy_cloud);
+    cloud_pub_.publish(enemy_cloud);
+
     // Container for original and filtered data
     pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
     pcl::PCLPointCloud2ConstPtr cloudPtr(cloud);
