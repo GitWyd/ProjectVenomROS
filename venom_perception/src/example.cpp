@@ -23,10 +23,12 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "Perceiver.h"
+#include "Zed.h"
 
 int main (int argc, char** argv) {
   ros::init(argc, argv, "perception_node");
   venom::Perceiver pcv;
+  venom::Zed zed;
   ros::Rate rate(1);
   while (ros::ok())
   {

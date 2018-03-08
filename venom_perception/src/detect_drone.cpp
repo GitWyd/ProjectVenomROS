@@ -19,21 +19,21 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include "Perceiver.h"
+#include "Zed.h"
 
-std::pair<int,int> begin, end;
+int a1,a2,b1,b2;
 bool pressed = false;
 bool trigger = false;
 void mouse_callback(int event, int x, int y, int flags, void* userdata) {
   if ( !pressed && event == cv::EVENT_LBUTTONDOWN) {
-    begin.first = x;
-    begin.second = y;
-    ROS_INFO_STREAM("begin = " << begin.first << ", " << begin.second);
+    a1 = x;
+    b1 = y;
+    ROS_INFO_STREAM("begin = " << a1 << ", " << b1);
     pressed = true;
   } else if (pressed && event == cv::EVENT_LBUTTONUP) {
-    end.first = x;
-    end.second = y;
-    ROS_INFO_STREAM("end = " << end.first << ", " << end.second);
+    a2 = x;
+    b2 = y;
+    ROS_INFO_STREAM("end = " << b2 << ", " << b2);
     pressed = false;
     trigger = true;
   }
@@ -41,23 +41,23 @@ void mouse_callback(int event, int x, int y, int flags, void* userdata) {
 
 int main (int argc, char** argv) {
   ros::init(argc, argv, "detect_drone");
-  venom::Perceiver pcv;
+  venom::Zed zed;
+  zed.Enable(venom::PerceptionType::RGB);
+  zed.Enable(venom::PerceptionType::CLOUD);
   ros::Rate rate(10);
   cv::namedWindow( "drone_fpv", cv::WINDOW_AUTOSIZE );
   cv::setMouseCallback("drone_fpv", mouse_callback, NULL);
   char key;
   while (ros::ok() && key != 'q') {
-    if (pcv.RGBReady()) {
-      cv::Mat rgb = pcv.GetRGBImage();
-      cv::Point pt1(begin.first, begin.second);
-      cv::Point pt2(end.first, end.second);
-      cv::rectangle(rgb, pt1, pt2, cv::Scalar(0, 0, 255));
-      
-      cv::imshow("drone_fpv",rgb);
-      key = cv::waitKey(50);
-    }
+    cv::Mat rgb = zed.GetRGB();
+    cv::Point pt1(a1, b1);
+    cv::Point pt2(a2, b2);
+    cv::rectangle(rgb, pt1, pt2, cv::Scalar(0, 0, 255));
+    
+    cv::imshow("drone_fpv",rgb);
+    key = cv::waitKey(50);
     if (trigger) {
-      pcv.MarkPoints(begin,end);
+      zed.SetROI(a1,a2,b1,b2);
     }
     ros::spinOnce();
     rate.sleep();
