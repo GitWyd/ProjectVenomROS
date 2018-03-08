@@ -20,6 +20,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "Zed.h"
+#include <pcl/visualization/pcl_visualizer.h>
 
 int a1,a2,b1,b2;
 bool pressed = false;
@@ -41,6 +42,8 @@ void mouse_callback(int event, int x, int y, int flags, void* userdata) {
 
 int main (int argc, char** argv) {
   ros::init(argc, argv, "detect_drone");
+  ros::NodeHandle nh;
+  ros::Publisher cloud_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/venom/enemy_drone", 1);
   venom::Zed zed;
   zed.Enable(venom::PerceptionType::RGB);
   zed.Enable(venom::PerceptionType::CLOUD);
@@ -48,6 +51,7 @@ int main (int argc, char** argv) {
   cv::namedWindow( "drone_fpv", cv::WINDOW_AUTOSIZE );
   cv::setMouseCallback("drone_fpv", mouse_callback, NULL);
   char key;
+  pcl::visualization::PCLVisualizer viewer("target");
   while (ros::ok() && key != 'q') {
     cv::Mat rgb = zed.GetRGB();
     cv::Point pt1(a1, b1);
@@ -58,7 +62,15 @@ int main (int argc, char** argv) {
     key = cv::waitKey(50);
     if (trigger) {
       zed.SetROI(a1,a2,b1,b2);
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr enemy_cloud = zed.GetCloud();
+      viewer.removePointCloud("target");
+      viewer.addPointCloud(enemy_cloud, std::string("target"));
     }
+    viewer.spinOnce();
+    //sensor_msgs::PointCloud2 message;
+    //message.header = zed.GetHeader();
+    //pcl::toROSMsg(enemy_cloud,message);
+    //cloud_pub_.publish(message);
     ros::spinOnce();
     rate.sleep();
   }

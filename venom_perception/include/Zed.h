@@ -4,6 +4,7 @@
 #include <nav_msgs/Odometry.h>                                                  
 #include <pcl_ros/point_cloud.h>                                                
 #include <pcl/point_types.h>                                                    
+#include <std_msgs/Header.h>
                                                                                 
 #include <pcl/io/pcd_io.h>                                                      
 #include <sensor_msgs/PointCloud.h>                                             
@@ -42,7 +43,8 @@ public:
   cv::Mat GetRGB();
   cv::Mat GetDepth();
   void SetROI(int x1, int x2, int y1, int y2);
-  pcl::PointCloud<pcl::PointXYZRGB> GetCloud();
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr GetCloud();
+  std_msgs::Header GetHeader();
 
 private:
   ros::Subscriber odom_sub_;  // odometry
@@ -58,6 +60,7 @@ private:
   void RGBCallback(const sensor_msgs::ImageConstPtr& msg);
 
   ros::Subscriber cloud_sub_;
+  std_msgs::Header header_;
   pcl::PointCloud<pcl::PointXYZRGB> cloud_; // point cloud TODO: use pcl::PointCloudXYZRGB instead
   std::pair<int,int> roi_x_{0,0};
   std::pair<int,int> roi_y_{0,0};
@@ -140,6 +143,7 @@ void Zed::RGBCallback(const sensor_msgs::ImageConstPtr& msg) {
 }
 
 void Zed::CloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
+  header_ = cloud_msg->header;
   pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud_raw;
   pcl::fromROSMsg(*cloud_msg,pcl_cloud_raw);
   cloud_.clear();
@@ -158,8 +162,13 @@ cv::Mat Zed::GetDepth() {
   return cv::Mat(depth_ptr_->image);
 }
 
-pcl::PointCloud<pcl::PointXYZRGB> Zed::GetCloud() {
-  return cloud_;
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr Zed::GetCloud() {
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr res(new pcl::PointCloud<pcl::PointXYZRGB>(cloud_));
+  return res;
+}
+
+std_msgs::Header Zed::GetHeader() {
+  return header_;
 }
 
 void Zed::SetROI(int x1, int x2, int y1, int y2) {
