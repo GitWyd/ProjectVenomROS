@@ -11,7 +11,6 @@ find_package(
   sensor_msgs
   geometry_msgs
   nav_msgs
-  mavros_msgs
   pcl_ros
   pcl_conversions
   image_transport
@@ -19,10 +18,10 @@ find_package(
 )
 
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES venom_ros
-#  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs nav_msgs pcl_ros pcl_conversions image_transport cv_bridge
+  DEPENDS OpenCV
 )
 
 include_directories(
@@ -30,6 +29,18 @@ include_directories(
  ${catkin_INCLUDE_DIRS}
  ${OpenCV_INCLUDE_DIRS}
 )
+
+## Implementation of C++ header files
+add_library(${PROJECT_NAME} include/${PROJECT_NAME}/Zed.cpp)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+
+## Install project namespaced headers
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+#  PATTERN ".svn" EXCLUDE
+)
+
 
 ## Declare a C++ executable
 add_executable(depth_map src/depth_map.cpp)
@@ -45,4 +56,4 @@ add_executable(local_map src/local_map.cpp)
 target_link_libraries(local_map ${catkin_LIBRARIES})
 
 add_executable(detect_drone src/detect_drone.cpp)
-target_link_libraries(detect_drone ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(detect_drone ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME})

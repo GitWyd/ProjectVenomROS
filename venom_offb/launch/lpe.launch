@@ -3,10 +3,5 @@
   <include file="$(find mavros)/launch/px4.launch">
     <arg name="fcu_url" value="/dev/ttyUSB0:921600"/>
   </include>
-  <node name="vision_pose" pkg="venom_offb" type="vision_pose_converter"/>
-
-  <arg name="mynode" default="0"/>
-  <group if="$(arg mynode)">
-    <node name="offb_circle" pkg="venom_offb" type="offb_circle" />
-  </group>
+  <node name="venom_offb" pkg="venom_offb" type="vision_pose_converter"/>
 </launch>

@@ -1,7 +1,6 @@
-#include <iostream>
 #include <signal.h>
+#include <venom_offb/Navigator.h>
 #include "util.h"
-#include "Navigator.h"
 
 venom::Navigator* nav;
 
@@ -13,9 +12,8 @@ void exit_handler(int s) {
 }
 
 int main(int argc, char **argv) {
-  std::cout << venom::NavigatorStatus::OFF << std::endl;
 
-  ros::init(argc, argv, "Navigator", ros::init_options::NoSigintHandler);
+  ros::init(argc, argv, "hover", ros::init_options::NoSigintHandler);
   signal(SIGINT, exit_handler);
   char c = ' ';
   int rc;

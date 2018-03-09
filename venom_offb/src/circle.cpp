@@ -1,5 +1,5 @@
 #include "util.h" // venom
-#include "Navigator.h"
+#include <venom_offb/Navigator.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Quaternion.h>
@@ -34,7 +34,7 @@ std::list<geometry_msgs::PoseStamped> circle_traj(double res, double r, double h
 }
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "Navigator", ros::init_options::NoSigintHandler);
+  ros::init(argc, argv, "circle", ros::init_options::NoSigintHandler);
   signal(SIGINT, exit_handler);
   char c = ' ';
   int rc;

@@ -1,5 +1,5 @@
 #include "Navigator.h"
-#include <eigen_conversions/eigen_msg.h>
+#include <eigen_conversions/eigen_msg.h> // matrix manipulation
 
 namespace venom {
 

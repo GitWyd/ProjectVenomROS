@@ -1,5 +1,5 @@
 #include "util.h" // venom
-#include "Navigator.h"
+#include <venom_offb/Navigator.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Quaternion.h>
@@ -7,6 +7,7 @@
 #include <list>
 #include <iostream>
 #include <signal.h>
+#include <venom_perception/Zed.h>
 
 venom::Navigator* nav;
 
