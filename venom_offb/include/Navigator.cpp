@@ -1,4 +1,5 @@
 #include "Navigator.h"
+#include <eigen_conversions/eigen_msg.h>
 
 namespace venom {
 
@@ -119,6 +120,20 @@ void Navigator::Land() {
     ROS_INFO("Switched to AUTO.LAND mode");
   else
     ROS_ERROR("Fail to switch mode");
+}
+
+void Navigator::GotoYour(const geometry_msgs::Point& p) {
+  //setpoint_.pose.position.x = pose_.pose.position.x + p.x;
+  //setpoint_.pose.position.y = pose_.pose.position.y + p.y;
+  //setpoint_.pose.position.z = pose_.pose.position.z + p.z;
+  double theta = atan2(p.y,p.x);
+  Eigen::Affine3d t;
+  tf::poseMsgToEigen (pose_.pose, t);
+  t.translation() << pose_.pose.position.x + p.x, pose_.pose.position.y + p.y, pose_.pose.position.z + p.z;
+  t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
+
+  //geometry_msgs::PoseStamped cmd;
+  tf::poseEigenToMsg(t, setpoint_.pose);
 }
 
 double Navigator::Error(geometry_msgs::PoseStamped pose) {

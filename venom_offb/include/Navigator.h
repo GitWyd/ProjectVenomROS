@@ -28,6 +28,7 @@ public:
   void TakeOff(double h = 1.0);
   void Land();
   void SetPoint(const geometry_msgs::PoseStamped& ps){ setpoint_ = ps;}
+  void GotoYour(const geometry_msgs::Point& pt);
   double Error(geometry_msgs::PoseStamped pose);
   void SetTolerence(double tol);
   void SetVerbose(bool verbose);

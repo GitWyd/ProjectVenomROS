@@ -14,7 +14,7 @@ find_package(catkin REQUIRED
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES venom_ros
+  CATKIN_DEPENDS eigen_conversions
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -22,12 +22,14 @@ catkin_package(
 include_directories(
  include
  ${catkin_INCLUDE_DIRS}
+ ${Eigen_INCLUDE_DIRS}
 )
 
 # Declare a C++ library
 add_library(${PROJECT_NAME}
   include/Navigator.cpp
 )
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 ## Declare a C++ executable
 add_executable(offb_circle src/offb_circle.cpp)
@@ -44,3 +46,6 @@ target_link_libraries(vision_pose_converter ${catkin_LIBRARIES})
 
 add_executable(circle src/circle.cpp)
 target_link_libraries(circle ${catkin_LIBRARIES} ${PROJECT_NAME})
+
+add_executable(hunt_drone src/hunt_drone.cpp)
+target_link_libraries(hunt_drone ${catkin_LIBRARIES} ${PROJECT_NAME})
