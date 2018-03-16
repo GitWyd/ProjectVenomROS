@@ -1,56 +1,21 @@
 #include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/filters/voxel_grid.h>
-#include <iostream>
-#include <pcl/io/pcd_io.h>
-#include <visualization_msgs/Marker.h>
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Quaternion.h>
-#include <geometry_msgs/Point.h>
-#include <geometry_msgs/PoseWithCovariance.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <nav_msgs/Odometry.h>
-
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <venom_perception/Zed.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/filters/statistical_outlier_removal.h>
-#include <pcl/common/common.h>
-#include <pcl/common/centroid.h>
 #include <std_msgs/Int32MultiArray.h>
-
-int a1=0,a2=0,b1=0,b2=0;
-bool pressed = false;
-bool trigger = false;
-void mouse_callback(int event, int x, int y, int flags, void* userdata) {
-  if ( !pressed && event == cv::EVENT_LBUTTONDOWN) {
-    a1 = x;
-    b1 = y;
-    ROS_INFO_STREAM("begin = " << a1 << ", " << b1);
-    pressed = true;
-  } else if (pressed && event == cv::EVENT_LBUTTONUP) {
-    a2 = x;
-    b2 = y;
-    ROS_INFO_STREAM("end = " << b2 << ", " << b2);
-    pressed = false;
-    trigger = true;
-  }
-}
+#include <sensor_msgs/PointCloud2.h>
+#include <venom_perception/Zed.h>
+#include <opencv2/opencv.hpp>
+#include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/common/centroid.h>
 
 // Callback function from YOLO
 // Update bounding box indices
+int px1=0,px2=0,py1=0,py2=0;
+bool trigger = false;
 static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
-  a1 = msg->data[0];
-  b1 = msg->data[1];
-  a2 = msg->data[2];
-  b1 = msg->data[3];
+  px1 = msg->data[0];
+  py1 = msg->data[1];
+  px2 = msg->data[2];
+  py1 = msg->data[3];
+  trigger = true;
 }
 
 int main (int argc, char** argv) {
@@ -64,18 +29,16 @@ int main (int argc, char** argv) {
   ros::Rate rate(10);
   while (ros::ok()) {
     cv::Mat rgb = zed.GetRGB();
-    if (a1 == 0 && a2 == 0 && b1 == 0 && b2 == 0) {
+    if (px1 == 0 && px2 == 0 && py1 == 0 && py2 == 0) {
       ROS_DEBUG("Nothing detected");
       ros::spinOnce();
       rate.sleep();
       continue;
     }
-    ROS_INFO_STREAM("Detect bounding box: ("<< a1 << "," << b1 << ") to ("
-                    << a2 << "," << b2 << ")");
-    cv::Point pt1(a1, b1);
-    cv::Point pt2(a2, b2);
+    ROS_INFO_STREAM("Detect bounding box: ("<< px1 << "," << py1 << ") to ("
+                    << px2 << "," << py2 << ")");
     if (trigger) {
-      zed.SetROI(a1,a2,b1,b2);
+      zed.SetROI(px1,px2,py1,py2);
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr roi = zed.GetCloud();
 
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZRGB>());

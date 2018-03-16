@@ -55,5 +55,5 @@ target_link_libraries(save_zed ${catkin_LIBRARIES})
 add_executable(local_map src/local_map.cpp)
 target_link_libraries(local_map ${catkin_LIBRARIES})
 
-add_executable(detect_drone src/detect_drone.cpp)
-target_link_libraries(detect_drone ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME})
+add_executable(detect_cloud src/detect_cloud.cpp)
+target_link_libraries(detect_cloud ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME})
