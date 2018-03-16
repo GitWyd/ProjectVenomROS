@@ -24,8 +24,9 @@
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/common/common.h>
 #include <pcl/common/centroid.h>
+#include <std_msgs/Int32MultiArray.h>
 
-int a1,a2,b1,b2;
+int a1=0,a2=0,b1=0,b2=0;
 bool pressed = false;
 bool trigger = false;
 void mouse_callback(int event, int x, int y, int flags, void* userdata) {
@@ -43,26 +44,36 @@ void mouse_callback(int event, int x, int y, int flags, void* userdata) {
   }
 }
 
+// Callback function from YOLO
+// Update bounding box indices
+static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
+  a1 = msg->data[0];
+  b1 = msg->data[1];
+  a2 = msg->data[2];
+  b1 = msg->data[3];
+}
+
 int main (int argc, char** argv) {
   ros::init(argc, argv, "detect_drone");
   ros::NodeHandle nh;
   ros::Publisher target_pub = nh.advertise<geometry_msgs::Point>("/venom/target_pos", 10);
+  ros::Subscriber bb_sub = nh.subscribe<std_msgs::Int32MultiArray>("/venom/bounding_box", 1, bb_callback);
   venom::Zed zed;
   zed.Enable(venom::PerceptionType::RGB);
   zed.Enable(venom::PerceptionType::CLOUD);
   ros::Rate rate(10);
-  cv::namedWindow( "drone_fpv", cv::WINDOW_AUTOSIZE );
-  cv::setMouseCallback("drone_fpv", mouse_callback, NULL);
-  char key;
-  //pcl::visualization::PCLVisualizer viewer("target");
-  while (ros::ok() && key != 'q') {
+  while (ros::ok()) {
     cv::Mat rgb = zed.GetRGB();
+    if (a1 == 0 && a2 == 0 && b1 == 0 && b2 == 0) {
+      ROS_DEBUG("Nothing detected");
+      ros::spinOnce();
+      rate.sleep();
+      continue;
+    }
+    ROS_INFO_STREAM("Detect bounding box: ("<< a1 << "," << b1 << ") to ("
+                    << a2 << "," << b2 << ")");
     cv::Point pt1(a1, b1);
     cv::Point pt2(a2, b2);
-    cv::rectangle(rgb, pt1, pt2, cv::Scalar(0, 0, 255));
-    
-    cv::imshow("drone_fpv",rgb);
-    key = cv::waitKey(50);
     if (trigger) {
       zed.SetROI(a1,a2,b1,b2);
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr roi = zed.GetCloud();
@@ -85,13 +96,9 @@ int main (int argc, char** argv) {
       target_pub.publish(target_pos);
       }
 
-      //viewer.removePointCloud("target");
-      //viewer.addPointCloud(filtered, std::string("target"));
     }
-    //viewer.spinOnce();
     ros::spinOnce();
     rate.sleep();
   }
-  cv::destroyAllWindows();
   return 0;
 }
