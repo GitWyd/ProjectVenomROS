@@ -59,13 +59,11 @@ class ImageReader:
     except CvBridgeError as e:
       print(e)
 
-  def get_rgb(self, width = 256, height = 144):
-    rgb = cv2.resize(self.rgb_image,dsize =(width, height) )
-    return rgb
+  def get_rgb(self):
+    return self.rgb_image.copy()
 
-  def get_depth(self, width = 256, height = 144):
-    depth = cv2.resize(self.depth_image,dsize =(width, height) )
-    return depth
+  def get_depth(self):
+    return self.depth_image.copy()
 
 def demo_program():
   ir = ImageReader()
