@@ -16,7 +16,7 @@ find_package(catkin REQUIRED
 ## NOTE: For package exporting, not needed right now
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp std_msgs geometry_msgs nav_msgs mavros_msgs eigen_conversions eigen_conversions
+  CATKIN_DEPENDS roscpp std_msgs geometry_msgs nav_msgs mavros_msgs eigen_conversions eigen_conversions venom_perception
 )
 
 include_directories(

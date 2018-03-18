@@ -2,10 +2,9 @@ cmake_minimum_required(VERSION 2.8.3)
 project(venom_perception)
 
 add_compile_options(-std=c++11)
-
+find_package(OpenCV REQUIRED) # Must be found before other packages
 find_package(
   catkin REQUIRED
-  OpenCV
   roscpp
   std_msgs
   sensor_msgs
@@ -16,6 +15,11 @@ find_package(
   image_transport
   cv_bridge
 )
+
+message(STATUS "OpenCV library status:")
+message(STATUS "    version: ${OpenCV_VERSION}")
+message(STATUS "    libraries: ${OpenCV_LIBS}")
+message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 
 catkin_package(
   INCLUDE_DIRS include

@@ -14,6 +14,7 @@
   <depend>nav_msgs</depend>
   <depend>mavros_msgs</depend>
   <depend>eigen_conversions</depend>
+  <depend>venom_perception</depend>
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>libpcl-all-dev</build_depend>
   <exec_depend>libpcl-all</exec_depend>
