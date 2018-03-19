@@ -50,12 +50,13 @@ void Zed::Disable(PerceptionType type) {
   }
 }
 
-void Zed::OdometryCallback(const nav_msgs::Odometry& msg) {                        
+void Zed::OdometryCallback(const nav_msgs::Odometry& msg) {
   pose_.header = msg.header;
   pose_.pose = msg.pose;
 }
 
-void Zed::DepthCallback(const sensor_msgs::ImageConstPtr& msg) {              
+
+void Zed::DepthCallback(const sensor_msgs::ImageConstPtr& msg) {
   try { 
     depth_ptr_ = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_32FC1);
   } catch (cv_bridge::Exception& e) {
@@ -97,6 +98,10 @@ cv::Mat Zed::GetDepth() {
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr Zed::GetCloud() {
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr res(new pcl::PointCloud<pcl::PointXYZRGB>(cloud_));
   return res;
+}
+
+geometry_msgs::Pose Zed::GetPose() {
+  return pose_.pose.pose;
 }
 
 std_msgs::Header Zed::GetHeader() {

@@ -49,5 +49,8 @@ target_link_libraries(vision_pose_converter ${catkin_LIBRARIES})
 add_executable(circle src/circle.cpp)
 target_link_libraries(circle ${catkin_LIBRARIES} ${PROJECT_NAME})
 
-add_executable(hunt_drone src/hunt_drone.cpp)
-target_link_libraries(hunt_drone ${catkin_LIBRARIES} ${PROJECT_NAME})
+add_executable(hunt_cloud src/hunt_cloud.cpp)
+target_link_libraries(hunt_cloud ${catkin_LIBRARIES} ${PROJECT_NAME})
+
+add_executable(hunt_servo src/hunt_servo.cpp)
+target_link_libraries(hunt_servo ${catkin_LIBRAREIS} ${PROJECT_NAME})
