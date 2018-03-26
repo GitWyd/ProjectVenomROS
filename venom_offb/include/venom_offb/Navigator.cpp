@@ -84,6 +84,12 @@ void Navigator::TakeOff(double h) {
     ROS_INFO("Vehicle armed");
   if (InitNavProcess() )
     ROS_INFO("Init SUCCESS");
+
+  while (Error(setpoint_) > 0.2) {
+    setpoint_pub_.publish(setpoint_);
+    ros::spinOnce();
+    d.sleep();
+  }
 }
 
 void Navigator::Land(double h) {

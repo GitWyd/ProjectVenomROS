@@ -8,7 +8,9 @@
 
 int px1=0,px2=0,py1=0,py2=0;
 //int cx = 360, cy = 540; // 720p
-int cx = 128, cy = 128;
+//int cx = 128, cy = 128; // cv2.resize to 256x256
+int cx = 320, cy = 240; // VGA
+int tolx = cx/12, toly = cy/12;
 bool trigger = false;
 static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
   px1 = msg->data[0];
@@ -40,31 +42,50 @@ int main (int argc, char** argv) {
   nav->TakeOff(2.0);
 
   ros::Duration d(0.5);
+  ROS_INFO("Searching target...");
+  geometry_msgs::PoseStamped cmd;
+  cmd.pose.position.x = 0.0;
+  cmd.pose.position.y = 0.0;
+  cmd.pose.position.z = 2.0;
+  cmd.pose.orientation.x = 0.0;
+  cmd.pose.orientation.y = 0.0;
+  cmd.pose.orientation.z = 0.0;
+  cmd.pose.orientation.w = 1.0;
+  Eigen::Affine3d t;
+  while (ros::ok() && px1==0 && px2==0 && py1==0 && py2==0) {
+    tf::poseMsgToEigen (cmd.pose, t);
+    t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
+    tf::poseEigenToMsg(t, cmd.pose);
+    nav->SetPoint(cmd);
+    ros::spinOnce();
+    d.sleep();
+  }
+  ROS_INFO("Begin z-axis following");
   while (ros::ok()) {
-    geometry_msgs::Pose curr = zed.GetPose();
-    //ROS_INFO_STREAM("ping " << curr);
     if (px1!=0 || px2!=0 || py1 != 0 || py2 != 0) {
-      ROS_INFO_STREAM("current pose " << curr);
-      Eigen::Affine3d t;
-      tf::poseMsgToEigen (curr, t);
+      // Compute the center of bounding box
       int midx = (px1 + px2)/2, midy = (py1 + py2)/2;
       ROS_INFO_STREAM("target center (" << midx << ", " << midy << ")");
-      if (midy - cy > 30 ) {
-        ROS_INFO("Turn right");
-        t.rotate (Eigen::AngleAxisd (-M_PI/4.0, Eigen::Vector3d::UnitZ()));
-      } else if (midy - cy < -30 ) {
-        ROS_INFO("Turn left");
-        t.rotate (Eigen::AngleAxisd (M_PI/4.0, Eigen::Vector3d::UnitZ()));
+
+      tf::poseMsgToEigen (cmd.pose, t);
+      //TODO: uncomment if moving forward
+      //t.translation() << curr.position.x+0.2, curr.position.y, curr.position.z;
+      if (midx - cx > tolx ) {
+        ROS_INFO("Go up");
+        t.translation() << cmd.pose.position.x, cmd.pose.position.y, cmd.pose.position.z+0.05;
+      } else if (midx - cx < -tolx ) {
+        ROS_INFO("Go down");
+        t.translation() << cmd.pose.position.x, cmd.pose.position.y, cmd.pose.position.z-0.05;
       }
-      t.translation() << curr.position.x, curr.position.y, curr.position.z;
-      //if (midx - cx > 30 ) {
-      //  ROS_INFO("Go up");
-      //  t.translation() << curr.position.x, curr.position.y, curr.position.z+0.05;
-      //} else if (midx - cx < -30 ) {
-      //  ROS_INFO("Go down");
-      //  t.translation() << curr.position.x, curr.position.y, curr.position.z-0.05;
-      //}
-      geometry_msgs::PoseStamped cmd;
+
+      if (midy - cy > toly ) {
+        ROS_INFO("Turn right");
+        t.rotate (Eigen::AngleAxisd (-M_PI/10.0, Eigen::Vector3d::UnitZ()));
+      } else if (midy - cy < -toly ) {
+        ROS_INFO("Turn left");
+        t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
+      }
+      // Publish command
       tf::poseEigenToMsg(t, cmd.pose);
       nav->SetPoint(cmd);
 

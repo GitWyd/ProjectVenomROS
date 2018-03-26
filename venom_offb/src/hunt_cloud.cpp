@@ -37,35 +37,59 @@ int main(int argc, char **argv) {
   zed.Enable(venom::PerceptionType::ODOM);
 
   nav = new venom::Navigator();
-  nav->SetVerbose(true);
-  nav->TakeOff(1.0);
+  //double tol = 0.3;
+  //nav->SetTolerence(tol);
+  //nav->SetVerbose(true);
+  nav->TakeOff(2.0);
+  ros::Duration d(0.5);
 
-  ros::Duration d(0.05);
-  while (ros::ok() && nav->GetStatus() != venom::NavigatorStatus::IDLE) {
+  geometry_msgs::PoseStamped cmd;
+  cmd.pose.position.x = 0.0;
+  cmd.pose.position.y = 0.0;
+  cmd.pose.position.z = 2.0;
+  cmd.pose.orientation.x = 0.0;
+  cmd.pose.orientation.y = 0.0;
+  cmd.pose.orientation.z = 0.0;
+  cmd.pose.orientation.w = 1.0;
+  Eigen::Affine3d t;
+  ROS_INFO("Searching target...");
+  while (ros::ok() ) {
+    int rc = venom::wait_key(0,1000,c);
+    if (c == 'q' || rc < 0)
+      break;
+    tf::poseMsgToEigen (cmd.pose, t);
+    t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
+    tf::poseEigenToMsg(t, cmd.pose);
+    nav->SetPoint(cmd);
     ros::spinOnce();
     d.sleep();
   }
-
-  double tol = 0.3;
-  nav->SetTolerence(tol);
+  c = 'x';
+  //target_pos.x = 0.5;
+  //target_pos.y = 0.5;
+  //target_pos.z = 0.2;
+  ROS_INFO("Begin z-axis following");
   while (ros::ok() && nav->GetStatus() != venom::NavigatorStatus::OFF) {
     int rc = venom::wait_key(0,1000,c);
     if (c == 'q' || rc < 0)
       break;
-    if (c == 'g' || c == 'G') {
-      geometry_msgs::Pose curr = zed.GetPose();
-      double theta = atan2(target_pos.y,target_pos.x);
-      double dist = std::max(sqrt(target_pos.y*target_pos.y + target_pos.x*target_pos.x)-0.2, 0.0);
-      Eigen::Affine3d t;
-      tf::poseMsgToEigen (curr, t);
-      t.translation() << curr.position.x + dist, curr.position.y, curr.position.z+target_pos.z;
-      t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
-
-      geometry_msgs::PoseStamped cmd;
-      tf::poseEigenToMsg(t, cmd.pose);
-      nav->SetPoint(cmd);
-      c = 'x';
+    if (target_pos.x==0 && target_pos.y==0 && target_pos.z==0) {
+      d.sleep();
+      ros::spinOnce();
     }
+
+    geometry_msgs::Pose curr = zed.GetPose();
+    double theta = atan2(target_pos.y,target_pos.x);
+ 
+    double dist = 0.0; // TODO: uncomment to move forward
+    //double dist = std::max(sqrt(target_pos.y*target_pos.y + target_pos.x*target_pos.x)-0.2, 0.0);
+
+    tf::poseMsgToEigen (cmd.pose, t);
+    t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
+    t.translation() << cmd.pose.position.x + dist*cos(theta), cmd.pose.position.y+dist*sin(theta), cmd.pose.position.z+target_pos.z;
+
+    tf::poseEigenToMsg(t, cmd.pose);
+    nav->SetPoint(cmd);
 
     d.sleep();
     ros::spinOnce();
