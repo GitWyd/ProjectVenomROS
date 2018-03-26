@@ -26,9 +26,8 @@ public:
   ~Navigator();
   NavigatorStatus GetStatus();
   void TakeOff(double h = 1.0);
-  void Land();
+  void Land(double h = 1.0);
   void SetPoint(const geometry_msgs::PoseStamped& ps){ setpoint_ = ps;}
-  void GotoYour(const geometry_msgs::Point& pt);
   double Error(geometry_msgs::PoseStamped pose);
   void SetTolerence(double tol);
   void SetVerbose(bool verbose);

@@ -1,5 +1,4 @@
 #include "Navigator.h"
-#include <eigen_conversions/eigen_msg.h> // matrix manipulation
 
 namespace venom {
 
@@ -87,17 +86,19 @@ void Navigator::TakeOff(double h) {
     ROS_INFO("Init SUCCESS");
 }
 
-void Navigator::Land() {
+void Navigator::Land(double h) {
   if (!EndNavProcess()) {
     ROS_DEBUG("Thread not running");
     return;
   }
-  setpoint_.pose.position.x = 0.0; // Racing condition!! Probably need to synchronize
+
+  h = std::max(0.1, h); // make sure h is sufficiently high
+  setpoint_.pose.position.x = 0.0;
   setpoint_.pose.position.y = 0.0;
-  setpoint_.pose.position.z = 0.05;
+  setpoint_.pose.position.z = h;
 
   ROS_INFO("Landing...");
-  ros::Duration d(0.1);
+  ros::Duration d(0.01);
   while (Error(setpoint_) > 0.3) {
     setpoint_pub_.publish(setpoint_);
     ros::spinOnce();
@@ -113,29 +114,16 @@ void Navigator::Land() {
   offb_set_mode.request.custom_mode = "AUTO.LAND";
   //offb_set_mode.request.custom_mode = "STABILIZED";
 
-  mavros_msgs::CommandBool arm_cmd;
-  arm_cmd.request.value = true;
-
   if( set_mode_client_.call(offb_set_mode) && offb_set_mode.response.mode_sent )
     ROS_INFO("Switched to AUTO.LAND mode");
   else
     ROS_ERROR("Fail to switch mode");
-}
-
-void Navigator::GotoYour(const geometry_msgs::Point& p) {
-  double theta = atan2(p.y,p.x);
-  Eigen::Affine3d t;
-  tf::poseMsgToEigen (pose_.pose, t);
-  t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
-  // TODO: stage 1 only face toward the detected target
-  t.translation() << pose_.pose.position.x, pose_.pose.position.y, pose_.pose.position.z;
-  // TODO: stage 2 attitude following
-  //t.translation() << pose_.pose.position.x, pose_.pose.position.y, pose_.pose.position.z + p.z;
-  // TODO: stage 3 actual hunting
-  //t.translation() << pose_.pose.position.x + p.x, pose_.pose.position.y + p.y, pose_.pose.position.z + p.z;
-
-  //geometry_msgs::PoseStamped cmd;
-  tf::poseEigenToMsg(t, setpoint_.pose);
+  
+  ROS_INFO("Disarming...");
+  mavros_msgs::CommandBool arm_cmd;
+  arm_cmd.request.value = true;
+  if (arming_client_.call(arm_cmd) && arm_cmd.response.success)
+    ROS_INFO("Vehicle disarmed");
 }
 
 double Navigator::Error(geometry_msgs::PoseStamped pose) {

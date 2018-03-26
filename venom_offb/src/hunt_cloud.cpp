@@ -3,6 +3,7 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Quaternion.h>
+#include <eigen_conversions/eigen_msg.h> // matrix manipulation
 #include <cmath> // std
 #include <list>
 #include <iostream>
@@ -32,6 +33,9 @@ int main(int argc, char **argv) {
   ros::NodeHandle nh;
   ros::Subscriber target_sub = nh.subscribe("/venom/target_pos",10,point_callback);
 
+  venom::Zed zed;
+  zed.Enable(venom::PerceptionType::ODOM);
+
   nav = new venom::Navigator();
   nav->SetVerbose(true);
   nav->TakeOff(1.0);
@@ -49,7 +53,17 @@ int main(int argc, char **argv) {
     if (c == 'q' || rc < 0)
       break;
     if (c == 'g' || c == 'G') {
-      nav->GotoYour( target_pos);
+      geometry_msgs::Pose curr = zed.GetPose();
+      double theta = atan2(target_pos.y,target_pos.x);
+      double dist = std::max(sqrt(target_pos.y*target_pos.y + target_pos.x*target_pos.x)-0.2, 0.0);
+      Eigen::Affine3d t;
+      tf::poseMsgToEigen (curr, t);
+      t.translation() << curr.position.x + dist, curr.position.y, curr.position.z+target_pos.z;
+      t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
+
+      geometry_msgs::PoseStamped cmd;
+      tf::poseEigenToMsg(t, cmd.pose);
+      nav->SetPoint(cmd);
       c = 'x';
     }
 
@@ -58,16 +72,7 @@ int main(int argc, char **argv) {
   }
 
 
-  nav->TakeOff(1.0); // TODO: this is bad... try to redesign the class pattern
-  nav->SetTolerence(0.1);
-  ROS_INFO("Back to 1 meter high");
-  while (ros::ok() && nav->GetStatus() != venom::NavigatorStatus::IDLE) {
-    d.sleep();
-    ros::spinOnce();
-  }
-  ROS_INFO("Landing...");
-
-  nav->Land();
+  nav->Land(0.8);
   delete nav;
   return 0;
 }

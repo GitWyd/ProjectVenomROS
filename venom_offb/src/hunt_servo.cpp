@@ -73,14 +73,6 @@ int main (int argc, char** argv) {
     d.sleep();
     ros::spinOnce();
   }
-  nav->TakeOff(1.0); // TODO: this is bad... try to redesign the class pattern
-  nav->SetTolerence(0.1);
-  ROS_INFO("Back to 1 meter high");
-  while (ros::ok() && nav->GetStatus() != venom::NavigatorStatus::IDLE) {
-    d.sleep();
-    ros::spinOnce();
-  }
-  ROS_INFO("Landing...");
-  nav->Land();
+  nav->Land(0.8);
   return 0;
 }
