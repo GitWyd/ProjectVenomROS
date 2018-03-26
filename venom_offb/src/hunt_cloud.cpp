@@ -93,6 +93,9 @@ int main(int argc, char **argv) {
 
     d.sleep();
     ros::spinOnce();
+    target_pos.x = 0.0; // clear buffer
+    target_pos.y = 0.0;
+    target_pos.z = 0.0;
   }
 
 

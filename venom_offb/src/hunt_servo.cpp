@@ -5,6 +5,7 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Quaternion.h>
+#include "util.h"
 
 int px1=0,px2=0,py1=0,py2=0;
 //int cx = 360, cy = 540; // 720p
@@ -52,7 +53,11 @@ int main (int argc, char** argv) {
   cmd.pose.orientation.z = 0.0;
   cmd.pose.orientation.w = 1.0;
   Eigen::Affine3d t;
+  char c = 'x';
   while (ros::ok() && px1==0 && px2==0 && py1==0 && py2==0) {
+    venom::wait_key(0,1000,c);
+    if (c == 'q')
+      break;
     tf::poseMsgToEigen (cmd.pose, t);
     t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
     tf::poseEigenToMsg(t, cmd.pose);
@@ -60,33 +65,41 @@ int main (int argc, char** argv) {
     ros::spinOnce();
     d.sleep();
   }
+  c = 'x';
   ROS_INFO("Begin z-axis following");
   while (ros::ok()) {
+    venom::wait_key(0,1000,c);
+    if (c == 'q')
+      break;
     if (px1!=0 || px2!=0 || py1 != 0 || py2 != 0) {
       // Compute the center of bounding box
       int midx = (px1 + px2)/2, midy = (py1 + py2)/2;
       ROS_INFO_STREAM("target center (" << midx << ", " << midy << ")");
 
-      tf::poseMsgToEigen (cmd.pose, t);
-      //TODO: uncomment if moving forward
-      //t.translation() << curr.position.x+0.2, curr.position.y, curr.position.z;
-      if (midx - cx > tolx ) {
-        ROS_INFO("Go up");
-        t.translation() << cmd.pose.position.x, cmd.pose.position.y, cmd.pose.position.z+0.05;
-      } else if (midx - cx < -tolx ) {
-        ROS_INFO("Go down");
-        t.translation() << cmd.pose.position.x, cmd.pose.position.y, cmd.pose.position.z-0.05;
-      }
-
+      // TODO: set dist = 0.2 if you want to move forward.
+      double theta = 0.0, dist = 0.0, dz = 0.0;
       if (midy - cy > toly ) {
         ROS_INFO("Turn right");
-        t.rotate (Eigen::AngleAxisd (-M_PI/10.0, Eigen::Vector3d::UnitZ()));
+        theta = -M_PI/10.0;
       } else if (midy - cy < -toly ) {
         ROS_INFO("Turn left");
-        t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
+        theta = M_PI/10.0;
       }
-      // Publish command
+      if (midx - cx > tolx ) {
+        ROS_INFO("Go up");
+        dz = 0.05;
+      } else if (midx - cx < -tolx ) {
+        ROS_INFO("Go down");
+        dz = -0.05;
+      }
+
+      // Matrix tranformation
+      tf::poseMsgToEigen (cmd.pose, t);
+      t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
       tf::poseEigenToMsg(t, cmd.pose);
+      cmd.pose.position.x += dist * cos(theta);
+      cmd.pose.position.y += dist * sin(theta);
+      cmd.pose.position.z += dz;
       nav->SetPoint(cmd);
 
       px1 = py1 = px2 = py2 = 0; // clear buffered values
