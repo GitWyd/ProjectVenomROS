@@ -43,6 +43,7 @@ class ImageReader:
     self.__bridge = CvBridge()
     self.__rgb_sub = rospy.Subscriber("/zed/rgb/image_rect_color",Image,self.__rgb_cb)
     self.__depth_sub = rospy.Subscriber("/zed/depth/depth_registered",Image,self.__depth_cb)
+    self.__rgb_pub = rospy.Publisher('/venom/box_img', Image, queue_size=10)
     self.rgb_image = None
     self.depth_image = None
     self.net = None #dn.load_net(b"drone_data/tiny-yolo-drone.cfg", b"drone_data/tiny-yolo-drone.backup", 0)
@@ -71,9 +72,15 @@ class ImageReader:
       return None
     return cv2.resize(self.depth_image,dsize =(width, height) )
 
+  def send_rgb(self, cv_image):
+    try:
+      self.__rgb_pub.publish(self.__bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+    except CvBridgeError as e:
+      print(e)
+
 def main():
   ir = ImageReader()
-  pub = rospy.Publisher('/venom/bounding_box', Int32MultiArray, queue_size=10)
+  bb_pub = rospy.Publisher('/venom/bounding_box', Int32MultiArray, queue_size=10)
   #print "Press [Anykey] to grab image"
   #print "Press [q] to quit"
 
@@ -83,7 +90,7 @@ def main():
   meta = dn.load_meta(darknet_path+'drone1.data')
   total_fps = 0
   while not rospy.is_shutdown():
-    image = ir.get_rgb(256,256)
+    image = ir.get_rgb(640,480)
     if image is None:
       continue
     start = time.time()
@@ -108,7 +115,14 @@ def main():
     out.data = [int(avg[0]-avg[2]/2.0), int(avg[1]-avg[3]/2.0),\
                 int(avg[0]+avg[2]/2.0), int(avg[1]+avg[3]/2.0)]
     # Publish to ROS topic
-    pub.publish(out)
+    bb_pub.publish(out)
+
+    # imshow
+    #cv2.imshow('detection', image)
+    #if (cv2.waitKey(5) == 'q'):
+    #  break
+    ir.send_rgb(image)
+  cv2.destroyAllWindows()
 
     
     
