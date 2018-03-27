@@ -8,7 +8,7 @@ bridge = CvBridge()
 rgb_image = None
 
 def image_cb(data):
-  #global rgb_image
+  global rgb_image
   try:
     rgb_image = bridge.imgmsg_to_cv2(data, "bgr8")
   except CvBridgeError as e:
@@ -17,7 +17,6 @@ def image_cb(data):
 if __name__ == '__main__':
   rospy.init_node('listener', anonymous=True)
   bb_sub = rospy.Subscriber('/venom/box_img',Image,image_cb)
-  #bb_sub = rospy.Subscriber("/zed/rgb/image_rect_color",Image,image_cb)
   while not rospy.is_shutdown():
     if rgb_image is not None:
       cv2.imshow('bounding_box',rgb_image)
