@@ -81,16 +81,14 @@ class ImageReader:
 def main():
   ir = ImageReader()
   bb_pub = rospy.Publisher('/venom/bounding_box', Int32MultiArray, queue_size=10)
-  #print "Press [Anykey] to grab image"
-  #print "Press [q] to quit"
 
   darknet_path = os.environ['HOME']+'/darknet/drone_data/'
   net = dn.load_net(darknet_path+'tiny-yolo-drone.cfg',
-                    darknet_path+'tiny-yolo-drone.backup', 0)
+                    darknet_path+'model_4.3/tiny-yolo-drone_12500.weights', 0)
   meta = dn.load_meta(darknet_path+'drone1.data')
   total_fps = 0
   while not rospy.is_shutdown():
-    image = ir.get_rgb(640,480)
+    image = ir.get_rgb(256,256)
     if image is None:
       continue
     start = time.time()
@@ -105,6 +103,7 @@ def main():
             weight += region[1]
     if len(r) > 0:
         for e in range(len(avg)): avg[e] /= weight
+    print(avg)
     if weight > 0:
       cv2.rectangle(image, (int(avg[0]-avg[2]/2.0), int(avg[1]-avg[3]/2.0)),\
                     (int(avg[0]+avg[2]/2.0), int(avg[1]+avg[3]/2.0)), (0,0,255))

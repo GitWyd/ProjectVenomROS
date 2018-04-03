@@ -40,7 +40,7 @@ int main (int argc, char** argv) {
   zed.Enable(venom::PerceptionType::ODOM);
 
   nav = new venom::Navigator();
-  nav->TakeOff(2.0);
+  nav->TakeOff(1.0);
 
   ros::Duration d(0.5);
   ROS_INFO("Searching target...");
@@ -54,7 +54,7 @@ int main (int argc, char** argv) {
   cmd.pose.orientation.w = 1.0;
   Eigen::Affine3d t;
   char c = 'x';
-  while (ros::ok() && px1==0 && px2==0 && py1==0 && py2==0) {
+  while (ros::ok()) {
     venom::wait_key(0,1000,c);
     if (c == 'q')
       break;
@@ -80,10 +80,10 @@ int main (int argc, char** argv) {
       double theta = 0.0, dist = 0.0, dz = 0.0;
       if (midy - cy > toly ) {
         ROS_INFO("Turn right");
-        theta = -M_PI/10.0;
+        theta = -M_PI/18.0;
       } else if (midy - cy < -toly ) {
         ROS_INFO("Turn left");
-        theta = M_PI/10.0;
+        theta = M_PI/18.0;
       }
       if (midx - cx > tolx ) {
         ROS_INFO("Go up");
