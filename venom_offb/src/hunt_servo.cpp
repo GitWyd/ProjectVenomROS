@@ -40,21 +40,21 @@ int main (int argc, char** argv) {
   zed.Enable(venom::PerceptionType::ODOM);
 
   nav = new venom::Navigator();
-  nav->TakeOff(2.0);
+  nav->TakeOff(1.0);
 
   ros::Duration d(0.5);
   ROS_INFO("Searching target...");
   geometry_msgs::PoseStamped cmd;
   cmd.pose.position.x = 0.0;
   cmd.pose.position.y = 0.0;
-  cmd.pose.position.z = 2.0;
+  cmd.pose.position.z = 1.0;
   cmd.pose.orientation.x = 0.0;
   cmd.pose.orientation.y = 0.0;
   cmd.pose.orientation.z = 0.0;
   cmd.pose.orientation.w = 1.0;
   Eigen::Affine3d t;
   char c = 'x';
-  while (ros::ok() && px1==0 && px2==0 && py1==0 && py2==0) {
+  while (ros::ok()) {
     venom::wait_key(0,1000,c);
     if (c == 'q')
       break;
@@ -79,18 +79,18 @@ int main (int argc, char** argv) {
       // TODO: set dist = 0.2 if you want to move forward.
       double theta = 0.0, dist = 0.0, dz = 0.0;
       if (cy - midy > toly ) {
-        ROS_INFO("Go down");
-        dz = -0.05;
-      } else if (midy - cy > toly ) {
         ROS_INFO("Go up");
         dz = 0.05;
+      } else if (midy - cy > toly ) {
+        ROS_INFO("Go down");
+        dz = -0.05;
       }
       if (midx - cx > tolx ) {
         ROS_INFO("Turn right");
-        theta = -M_PI/10.0;
+        theta = -M_PI/18.0;
       } else if (cx - midx > tolx ) {
         ROS_INFO("Turn left");
-        theta = M_PI/10.0;
+        theta = M_PI/18.0;
       }
 
       // Matrix tranformation

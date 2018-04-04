@@ -17,6 +17,7 @@ def image_cb(data):
 if __name__ == '__main__':
   rospy.init_node('listener', anonymous=True)
   bb_sub = rospy.Subscriber('/venom/box_img',Image,image_cb)
+  cv2.namedWindow('bounding_box',cv2.WINDOW_NORMAL)
   while not rospy.is_shutdown():
     if rgb_image is not None:
       cv2.imshow('bounding_box',rgb_image)
