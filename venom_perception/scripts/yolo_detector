@@ -84,7 +84,7 @@ def main():
 
   darknet_path = os.environ['HOME']+'/darknet/drone_data/'
   net = dn.load_net(darknet_path+'tiny-yolo-drone.cfg',
-                    darknet_path+'model_4.3/tiny-yolo-drone_12500.weights', 0)
+                    darknet_path+'model_4.3/tiny-yolo-drone_11500.weights', 0)
   meta = dn.load_meta(darknet_path+'drone1.data')
   total_fps = 0
   while not rospy.is_shutdown():
