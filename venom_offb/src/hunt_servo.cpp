@@ -14,10 +14,10 @@ int cx = 128, cy = 128; // cv2.resize to 256x256
 int tolx = cx/12, toly = cy/12;
 bool trigger = false;
 static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
-  px1 = msg->data[0];
-  py1 = msg->data[1];
-  px2 = msg->data[2];
-  py2 = msg->data[3];
+  px1 = std::max(msg->data[0],0);
+  py1 = std::max(msg->data[1],0);
+  px2 = std::min(msg->data[2],cx*2);
+  py2 = std::min(msg->data[3],cy*2);
   trigger = true;
 }
 
@@ -25,8 +25,8 @@ venom::Navigator* nav;
                                                                                 
 void exit_handler(int s) {                                                      
   ROS_WARN("Force quitting...\n");                                              
-  nav->Land();                                                                  
-  delete nav;                                                                   
+  //nav->Land();                                                                  
+  //delete nav;                                                                   
   exit(1);                                                                      
 }
 
@@ -39,8 +39,8 @@ int main (int argc, char** argv) {
   venom::Zed zed;
   zed.Enable(venom::PerceptionType::ODOM);
 
-  nav = new venom::Navigator();
-  nav->TakeOff(1.0);
+  //nav = new venom::Navigator();
+  //nav->TakeOff(1.0);
 
   ros::Duration d(0.5);
   ROS_INFO("Searching target...");
@@ -61,7 +61,7 @@ int main (int argc, char** argv) {
     tf::poseMsgToEigen (cmd.pose, t);
     t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
     tf::poseEigenToMsg(t, cmd.pose);
-    nav->SetPoint(cmd);
+    //nav->SetPoint(cmd);
     ros::spinOnce();
     d.sleep();
   }
@@ -100,13 +100,13 @@ int main (int argc, char** argv) {
       cmd.pose.position.x += dist * cos(theta);
       cmd.pose.position.y += dist * sin(theta);
       cmd.pose.position.z += dz;
-      nav->SetPoint(cmd);
+      //nav->SetPoint(cmd);
 
       px1 = py1 = px2 = py2 = 0; // clear buffered values
     }
     d.sleep();
     ros::spinOnce();
   }
-  nav->Land(0.8);
+  //nav->Land(0.8);
   return 0;
 }
