@@ -25,8 +25,8 @@ venom::Navigator* nav;
                                                                                 
 void exit_handler(int s) {                                                      
   ROS_WARN("Force quitting...\n");                                              
-  //nav->Land();                                                                  
-  //delete nav;                                                                   
+  nav->Land();                                                                  
+  delete nav;                                                                   
   exit(1);                                                                      
 }
 
@@ -39,8 +39,8 @@ int main (int argc, char** argv) {
   venom::Zed zed;
   zed.Enable(venom::PerceptionType::ODOM);
 
-  //nav = new venom::Navigator();
-  //nav->TakeOff(1.0);
+  nav = new venom::Navigator();
+  nav->TakeOff(1.0);
 
   ros::Duration d(0.5);
   ROS_INFO("Searching target...");
@@ -61,7 +61,7 @@ int main (int argc, char** argv) {
     tf::poseMsgToEigen (cmd.pose, t);
     t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
     tf::poseEigenToMsg(t, cmd.pose);
-    //nav->SetPoint(cmd);
+    nav->SetPoint(cmd);
     ros::spinOnce();
     d.sleep();
   }
@@ -77,20 +77,20 @@ int main (int argc, char** argv) {
       ROS_INFO_STREAM("target center (" << midx << ", " << midy << ")");
 
       // TODO: set dist = 0.2 if you want to move forward.
-      double theta = 0.0, dist = 0.0, dz = 0.0;
+      double theta = 0.0, dist = 0.2, dz = 0.0;
       if (cy - midy > toly ) {
         ROS_INFO("Go up");
-        dz = 0.05;
+        dz = 0.10;
       } else if (midy - cy > toly ) {
         ROS_INFO("Go down");
-        dz = -0.05;
+        dz = -0.10;
       }
       if (midx - cx > tolx ) {
         ROS_INFO("Turn right");
-        theta = -M_PI/18.0;
+        theta = -M_PI/6.0;
       } else if (cx - midx > tolx ) {
         ROS_INFO("Turn left");
-        theta = M_PI/18.0;
+        theta = M_PI/6.0;
       }
 
       // Matrix tranformation
@@ -100,13 +100,13 @@ int main (int argc, char** argv) {
       cmd.pose.position.x += dist * cos(theta);
       cmd.pose.position.y += dist * sin(theta);
       cmd.pose.position.z += dz;
-      //nav->SetPoint(cmd);
+      nav->SetPoint(cmd);
 
       px1 = py1 = px2 = py2 = 0; // clear buffered values
     }
     d.sleep();
     ros::spinOnce();
   }
-  //nav->Land(0.8);
+  nav->Land(0.8);
   return 0;
 }
