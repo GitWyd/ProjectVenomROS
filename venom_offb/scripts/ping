@@ -3,35 +3,68 @@
 # This script measures the latency of out navigation pipeline.
 
 import rospy
+from sensor_msgs.msg import Image
+from std_msgs.msg import Int32MultiArray
+from geometry_msgs.msg import PoseStamped
+import time
 
+complete = False
 rgb_flag = False
 rgb_time = None
-def rgb_cb():
-    pass
+def rgb_cb(msg):
+    if rgb_flag:
+        rgb_time = time.now()
+        rgb_flag = False
+        yolo_flag = True
 
 yolo_flag = False
 yolo_time = None
-def yolo_cb():
-    pass
+def yolo_cb(msg):
+    if yolo_flag:
+        yolo_flag = time.now()
+        yolo_flag = False
+        setpoint_flag = True
 
 setpoint_flag = False
 setpoint_time = None
-def setpoint_cb():
-    pass
+def setpoint_cb(msg):
+    if setpoint_flag:
+        setpoint_time = time.now()
+        setpoint_flag = False
+        pose_state = 1
 
 pose_state = 0
 move_time = None
 stable_time = None
-def pose_cb():
-    pass
+def pose_cb(msg):
+    if pose_state == 1:
+        move_time = time.now()
+        pose_state = 2
+    elif pose_state == 2:
+        stable_time = time.now()
+        pose_state = 0
+        complete = True
 
 if __name__ == '__main__':
     print ('PING navigation pipeline')
+    rgb_sub = rospy.Subscriber('/zed/rgb/image_rect_color', Image, rgb_cb)
+    yolo_sub = rospy.Subscriber('/venom/box_img', Int32MultiArray, yolo_cb)
+    setpoint_cb = rospy.Subscriber('mavros/setpoint_position/local', PoseStamped, setpoint_cb)
+    pose_sub = rospy.Subscriber('mavros/local_position/pose', PoseStamped, pose_cb)
     while True:
+        begin = time.time()
         rgb_flag = True
-        pass
+        while not complete:
+            pass
+        complete = False
         # TODO: implementation here
+        rgb_delta = rgb_time - begin
+        yolo_delta = yolo_time - rgb_time
+        setpoint_delta = setpoint_time - yolo_time
+        move_delta = move_time - setpoint_time
+        stable_delta = stable_time - move_time
+
         output = 'rgb={0} yolo={1} nav={2} fcu={3} move={4}'.format(\
-            1,2,3,4,5)
+            rgb_delta, yolo_delta, setpoint_delta, move_delta, stable_delta)
         print (output)
         rospy.sleep(1.0)

@@ -13,6 +13,8 @@ int cx = 128, cy = 128; // cv2.resize to 256x256
 //int cx = 320, cy = 240; // VGA
 int tolx = cx/12, toly = cy/12;
 bool trigger = false;
+double max_theta = M_PI/3.0;
+double max_z = 0.3;
 static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
   px1 = std::max(msg->data[0],0);
   py1 = std::max(msg->data[1],0);
@@ -22,7 +24,7 @@ static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
 }
 
 venom::Navigator* nav;                                                          
-                                                                                
+
 void exit_handler(int s) {                                                      
   ROS_WARN("Force quitting...\n");                                              
   nav->Land();                                                                  
@@ -54,12 +56,20 @@ int main (int argc, char** argv) {
   cmd.pose.orientation.w = 1.0;
   Eigen::Affine3d t;
   char c = 'x';
+  int count = 0;
+  bool ccw = true;
+
+search_target:
   while (ros::ok()) {
+    if (px1!=0 || px2!=0 || py1 != 0 || py2 != 0) break;
     venom::wait_key(0,1000,c);
     if (c == 'q')
       break;
     tf::poseMsgToEigen (cmd.pose, t);
-    t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
+    if (ccw)
+      t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
+    else
+      t.rotate (Eigen::AngleAxisd (-M_PI/10.0, Eigen::Vector3d::UnitZ()));
     tf::poseEigenToMsg(t, cmd.pose);
     nav->SetPoint(cmd);
     ros::spinOnce();
@@ -80,17 +90,19 @@ int main (int argc, char** argv) {
       double theta = 0.0, dist = 0.2, dz = 0.0;
       if (cy - midy > toly ) {
         ROS_INFO("Go up");
-        dz = 0.10;
+        dz = max_z * (cy - midy) / cy;
       } else if (midy - cy > toly ) {
         ROS_INFO("Go down");
-        dz = -0.10;
+        dz = - max_z * (midy - cy) / cy;
       }
       if (midx - cx > tolx ) {
         ROS_INFO("Turn right");
-        theta = -M_PI/6.0;
+        theta = - max_theta * (midx - cx) / cx; // TODO: cast to double??
+        ccw = false;
       } else if (cx - midx > tolx ) {
         ROS_INFO("Turn left");
-        theta = M_PI/6.0;
+        theta = max_theta * (cx - midx) / cx;
+        ccw = true;
       }
 
       // Matrix tranformation
@@ -103,6 +115,9 @@ int main (int argc, char** argv) {
       nav->SetPoint(cmd);
 
       px1 = py1 = px2 = py2 = 0; // clear buffered values
+      count = 5;
+    } else {
+      if (--count <= 0) goto search_target;
     }
     d.sleep();
     ros::spinOnce();
