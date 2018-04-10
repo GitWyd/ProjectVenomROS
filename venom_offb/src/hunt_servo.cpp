@@ -13,8 +13,6 @@ int cx = 128, cy = 128; // cv2.resize to 256x256
 //int cx = 320, cy = 240; // VGA
 int tolx = cx/12, toly = cy/12;
 bool trigger = false;
-double max_theta = M_PI/3.0;
-double max_z = 0.3;
 static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
   px1 = std::max(msg->data[0],0);
   py1 = std::max(msg->data[1],0);
@@ -33,6 +31,16 @@ void exit_handler(int s) {
 }
 
 int main (int argc, char** argv) {
+  double max_theta = M_PI/3.0;
+  double max_z = 0.3;
+  double time_step = 0.1;
+  max_theta = std::stod(argv[1]);
+  max_z = std::stod(argv[2]);
+  time_step = std::stod(argv[3]);
+  std::cout << "Receive max_theta " << max_theta << std::endl;
+  std::cout << "Receive max_z " << max_z << std::endl;
+  std::cout << "Receive time_step " << time_step << std::endl;
+  
   ros::init(argc, argv, "visual_servo", ros::init_options::NoSigintHandler);
   signal(SIGINT, exit_handler);
   ros::NodeHandle nh;
@@ -44,7 +52,7 @@ int main (int argc, char** argv) {
   nav = new venom::Navigator();
   nav->TakeOff(1.0);
 
-  ros::Duration d(0.5);
+  ros::Duration d(time_step);
   ROS_INFO("Searching target...");
   geometry_msgs::PoseStamped cmd;
   cmd.pose.position.x = 0.0;
@@ -67,9 +75,9 @@ search_target:
       break;
     tf::poseMsgToEigen (cmd.pose, t);
     if (ccw)
-      t.rotate (Eigen::AngleAxisd (M_PI/10.0, Eigen::Vector3d::UnitZ()));
+      t.rotate (Eigen::AngleAxisd (M_PI/20.0, Eigen::Vector3d::UnitZ()));
     else
-      t.rotate (Eigen::AngleAxisd (-M_PI/10.0, Eigen::Vector3d::UnitZ()));
+      t.rotate (Eigen::AngleAxisd (-M_PI/20.0, Eigen::Vector3d::UnitZ()));
     tf::poseEigenToMsg(t, cmd.pose);
     nav->SetPoint(cmd);
     ros::spinOnce();
@@ -115,7 +123,7 @@ search_target:
       nav->SetPoint(cmd);
 
       px1 = py1 = px2 = py2 = 0; // clear buffered values
-      count = 5;
+      count = 10;
     } else {
       if (--count <= 0) goto search_target;
     }
