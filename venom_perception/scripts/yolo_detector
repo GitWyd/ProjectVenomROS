@@ -87,6 +87,7 @@ def main():
                     darknet_path+'model_4.3/tiny-yolo-drone_11500.weights', 0)
   meta = dn.load_meta(darknet_path+'drone1.data')
   total_fps = 0
+  txt_file = open('bbox_history_'+ time.strftime("%Y-%m-%d-%H:%M:%S",time.gmtime())+'.txt','w')
   while not rospy.is_shutdown():
     image = ir.get_rgb(256,256)
     if image is None:
@@ -115,6 +116,7 @@ def main():
                 int(avg[0]+avg[2]/2.0), int(avg[1]+avg[3]/2.0)]
     # Publish to ROS topic
     bb_pub.publish(out)
+    txt_file.write( time.strftime("%H:%M:%S ",time.gmtime())+str(out.data)+'\n')
 
     # imshow
     #cv2.imshow('detection', image)
@@ -122,6 +124,7 @@ def main():
     #  break
     ir.send_rgb(image)
   cv2.destroyAllWindows()
+  txt_file.close()
 
     
     
