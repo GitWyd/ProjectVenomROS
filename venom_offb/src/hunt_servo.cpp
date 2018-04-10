@@ -25,8 +25,8 @@ venom::Navigator* nav;
 
 void exit_handler(int s) {                                                      
   ROS_WARN("Force quitting...\n");                                              
-  nav->Land();                                                                  
-  delete nav;                                                                   
+  //nav->Land();                                                                  
+  //delete nav;                                                                   
   exit(1);                                                                      
 }
 
@@ -49,8 +49,8 @@ int main (int argc, char** argv) {
   venom::Zed zed;
   zed.Enable(venom::PerceptionType::ODOM);
 
-  nav = new venom::Navigator();
-  nav->TakeOff(1.0);
+  //nav = new venom::Navigator();
+  //nav->TakeOff(1.0);
 
   ros::Duration d(time_step);
   ROS_INFO("Searching target...");
@@ -79,7 +79,7 @@ search_target:
     else
       t.rotate (Eigen::AngleAxisd (-M_PI/20.0, Eigen::Vector3d::UnitZ()));
     tf::poseEigenToMsg(t, cmd.pose);
-    nav->SetPoint(cmd);
+    //nav->SetPoint(cmd);
     ros::spinOnce();
     d.sleep();
   }
@@ -98,18 +98,22 @@ search_target:
       double theta = 0.0, dist = 0.2, dz = 0.0;
       if (cy - midy > toly ) {
         ROS_INFO("Go up");
-        dz = max_z * (cy - midy) / cy;
+        dz = max_z * std::min(static_cast<double>(cy-midy)/static_cast<double>(cy), 1.0);
+        ROS_INFO_STREAM("dz = " << dz);
       } else if (midy - cy > toly ) {
         ROS_INFO("Go down");
-        dz = - max_z * (midy - cy) / cy;
+        dz = - max_z * std::min(static_cast<double>(midy-cy)/static_cast<double>(cy),1.0);
+        ROS_INFO_STREAM("dz = " << dz);
       }
       if (midx - cx > tolx ) {
         ROS_INFO("Turn right");
-        theta = - max_theta * (midx - cx) / cx; // TODO: cast to double??
+        theta = - max_theta * std::min(static_cast<double>(midx-cx)/static_cast<double>(cx),1.0); // TODO: cast to double??
+        ROS_INFO_STREAM("theta = " << theta);
         ccw = false;
       } else if (cx - midx > tolx ) {
         ROS_INFO("Turn left");
-        theta = max_theta * (cx - midx) / cx;
+        theta = max_theta * std::min(static_cast<double>(cx-midx)/static_cast<double>(cx), 1.0);
+        ROS_INFO_STREAM("theta = " << theta);
         ccw = true;
       }
 
@@ -120,7 +124,7 @@ search_target:
       cmd.pose.position.x += dist * cos(theta);
       cmd.pose.position.y += dist * sin(theta);
       cmd.pose.position.z += dz;
-      nav->SetPoint(cmd);
+      //nav->SetPoint(cmd);
 
       px1 = py1 = px2 = py2 = 0; // clear buffered values
       count = 10;
@@ -130,6 +134,6 @@ search_target:
     d.sleep();
     ros::spinOnce();
   }
-  nav->Land(0.8);
+  //nav->Land(0.8);
   return 0;
 }
