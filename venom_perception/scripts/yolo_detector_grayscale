@@ -11,14 +11,13 @@ import time
 from std_msgs.msg import Int32MultiArray
 import numpy as np
 
-sys.path.append(os.environ['HOME']+'/darknet/python')
+sys.path.append(os.environ['HOME']+'/darknet_grayscale/python')
 import darknet as dn
 
 def array_to_image(arr):
-    arr = arr.transpose(2,0,1)
-    c = arr.shape[0]
-    h = arr.shape[1]
-    w = arr.shape[2]
+    c = 1
+    h = arr.shape[0]
+    w = arr.shape[1]
     arr = (arr/255.0).flatten()
     data = dn.c_array(dn.c_float, arr)
     im = dn.IMAGE(w,h,c,data)
@@ -44,7 +43,7 @@ class ImageReader:
     self.__bridge = CvBridge()
     self.__rgb_sub = rospy.Subscriber("/zed/rgb/image_rect_color",Image,self.__rgb_cb)
     self.__depth_sub = rospy.Subscriber("/zed/depth/depth_registered",Image,self.__depth_cb)
-    self.__rgb_pub = rospy.Publisher('/venom/box_img', Image, queue_size=10)
+    #self.__rgb_pub = rospy.Publisher('/venom/box_img', Image, queue_size=10)
     self.rgb_image = None
     self.depth_image = None
     self.net = None #dn.load_net(b"drone_data/tiny-yolo-drone.cfg", b"drone_data/tiny-yolo-drone.backup", 0)
@@ -83,9 +82,9 @@ def main():
   ir = ImageReader()
   bb_pub = rospy.Publisher('/venom/bounding_box', Int32MultiArray, queue_size=10)
 
-  darknet_path = os.environ['HOME']+'/darknet/drone_data/'
-  net = dn.load_net(darknet_path+'tiny-yolo-drone.cfg',
-                    darknet_path+'model_4.3/tiny-yolo-drone_11500.weights', 0)
+  darknet_path = os.environ['HOME']+'/darknet_grayscale/drone_data/'
+  net = dn.load_net(darknet_path+'tiny-yolo-drone_grayscale.cfg',
+                    darknet_path+'model_4.10_grayscale/tiny-yolo-drone_11500.weights', 0)
   meta = dn.load_meta(darknet_path+'drone1.data')
   total_fps = 0
   txt_file = open('bbox_history_'+ time.strftime("%Y-%m-%d-%H:%M:%S",time.gmtime())+'.txt','w')
@@ -127,7 +126,7 @@ def main():
     #cv2.imshow('detection', image)
     #if (cv2.waitKey(5) == 'q'):
     #  break
-    ir.send_rgb(image)
+    #ir.send_rgb(image)
   #cv2.destroyAllWindows()
   print 'Average fps', np.average(measure)
   txt_file.close()
