@@ -92,17 +92,18 @@ private:
     cloud_pub_.publish(enemy_cloud);
 
     // Container for original and filtered data
-    pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
-    pcl::PCLPointCloud2ConstPtr cloudPtr(cloud);
+    //pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
+    //pcl::PCLPointCloud2ConstPtr cloudPtr(cloud);
 
     // Convert to PCL data type
-    pcl_conversions::toPCL(*cloud_msg, *cloud);
+    //pcl_conversions::toPCL(*cloud_msg, *cloud);
+    pcl_conversions::toPCL(*cloud_msg, pcl_cloud_);
 
     // Perform the actual filtering
-    pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
-    sor.setInputCloud (cloudPtr);
-    sor.setLeafSize(0.1,0.1,0.1);
-    sor.filter(pcl_cloud_); // TODO: what about the original data? Memory leak?
+    //pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
+    //sor.setInputCloud (cloudPtr);
+    //sor.setLeafSize(0.1,0.1,0.1);
+    //sor.filter(pcl_cloud_); // TODO: what about the original data? Memory leak?
 
     // Check distances
     if (depth_flag_) {
