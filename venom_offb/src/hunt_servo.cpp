@@ -8,7 +8,8 @@
 #include "util.h"
 #include <string>
 
-int px1=0,px2=0,py1=0,py2=0;
+//int px1=0,px2=0,py1=0,py2=0;
+int px1=0,px2=100,py1=0,py2=100;
 int center_x, center_y, tol_x, tol_y;
 bool trigger = false;
 static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
@@ -77,7 +78,6 @@ int main (int argc, char** argv) {
   cmd.pose.orientation.y = 0.0;
   cmd.pose.orientation.z = 0.0;
   cmd.pose.orientation.w = 1.0;
-  Eigen::Affine3d t;
   char c = 'x';
   int count = 0;
   bool ccw = true;
@@ -89,6 +89,7 @@ search_target:
     venom::wait_key(0,1000,c);
     if (c == 'q')
       break;
+    Eigen::Affine3d t;
     tf::poseMsgToEigen (cmd.pose, t);
     if (ccw)
       t.rotate (Eigen::AngleAxisd (M_PI/20.0, Eigen::Vector3d::UnitZ()));
@@ -132,17 +133,22 @@ search_target:
         ccw = true;
       }
 
-      // Matrix tranformation
-      cmd.pose.position = zed.GetPose().position;
+      cmd.pose = zed.GetPose();
+      Eigen::Affine3d t;            // Retrieve current pose
       tf::poseMsgToEigen (cmd.pose, t);
-      t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
-      tf::poseEigenToMsg(t, cmd.pose);
-      cmd.pose.position.x += dist * cos(theta);
-      cmd.pose.position.y += dist * sin(theta);
-      cmd.pose.position.z += dz;
+      t.translation() << 0, 0, 0;   // pure rotation
+      eigen::Vector3d u(1,0,0);
+      eigen::Vector3d v = t * u;
+      std::cout << "v = " << v << std::endl;
+      //t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
+      //tf::poseEigenToMsg(t, cmd.pose);
+      //cmd.pose.position.x += dist * cos(theta);
+      //cmd.pose.position.y += dist * sin(theta);
+      //cmd.pose.position.z += dz;
+      break;
       //nav->SetPoint(cmd);
 
-      px1 = py1 = px2 = py2 = 0; // clear buffered values
+      //px1 = py1 = px2 = py2 = 0; // clear buffered values
       count = 10;
     } else {
       if (--count <= 0) goto search_target;
