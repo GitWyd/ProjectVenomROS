@@ -6,42 +6,58 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Quaternion.h>
 #include "util.h"
+#include <string>
 
 int px1=0,px2=0,py1=0,py2=0;
-//int cx = 360, cy = 540; // 720p
-int cx = 128, cy = 128; // cv2.resize to 256x256
-//int cx = 320, cy = 240; // VGA
-int tolx = cx/12, toly = cy/12;
+int center_x, center_y, tol_x, tol_y;
 bool trigger = false;
 static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
   px1 = std::max(msg->data[0],0);
   py1 = std::max(msg->data[1],0);
-  px2 = std::min(msg->data[2],cx*2);
-  py2 = std::min(msg->data[3],cy*2);
+  px2 = std::min(msg->data[2],center_x*2);
+  py2 = std::min(msg->data[3],center_y*2);
   trigger = true;
 }
 
 venom::Navigator* nav;                                                          
 
 void exit_handler(int s) {                                                      
-  ROS_WARN("Force quitting...\n");                                              
-  //nav->Land();                                                                  
-  //delete nav;                                                                   
-  exit(1);                                                                      
+  ROS_WARN("Force quitting...\n");
+  //nav->Land();
+  //delete nav;
+  exit(1);
 }
 
 int main (int argc, char** argv) {
-  double max_theta = M_PI/3.0;
-  double max_z = 0.3;
-  double time_step = 0.1;
-  max_theta = std::stod(argv[1]);
-  max_z = std::stod(argv[2]);
-  time_step = std::stod(argv[3]);
-  std::cout << "Receive max_theta " << max_theta << std::endl;
-  std::cout << "Receive max_z " << max_z << std::endl;
-  std::cout << "Receive time_step " << time_step << std::endl;
-  
   ros::init(argc, argv, "visual_servo", ros::init_options::NoSigintHandler);
+  // Retrieve input resolution of the YOLO detector
+  int resolution_x, resolution_y;
+  if (!ros::param::get("/venom/resolution/x", resolution_x)) {
+    ROS_ERROR("Couldn't find rosparam /venom/resolution/x");
+    return 1;
+  } else if (!ros::param::get("/venom/resolution/y", resolution_y)) {
+    ROS_ERROR("Couldn't find rosparam /venom/resotluion/y");
+    return 1;
+  }
+  ROS_INFO_STREAM("Retrieve resotlution "<< resolution_x << ", " << resolution_y);
+  tol_x = center_x / 12;
+  tol_y = center_y / 12;
+
+  // Visual servo parameters
+  // max_theta : max. yaw angle turns at each step
+  // max_z     : max. z-axis adjustment at each step
+  // dist      : forward step size (set 0.0 on yawing scenario)
+  // time_step : period of a time step. No lower than 0.1 sec. This is due to
+  //             the update time of the Navigation thread.
+  double max_theta = std::stod(argv[1]); // M_PI/3.0
+  double max_z = std::stod(argv[2]);     // 0.3
+  double dist = std::stod(argv[4]);  // 0.0
+  double time_step = std::stod(argv[3]); // 0.1
+  ROS_INFO_STREAM("Receive max_theta " << max_theta);
+  ROS_INFO_STREAM("Receive max_z " << max_z);
+  ROS_INFO_STREAM("Receive dist " << dist);
+  ROS_INFO_STREAM("Receive time_step " << time_step);
+  
   signal(SIGINT, exit_handler);
   ros::NodeHandle nh;
   ros::Subscriber bb_sub = nh.subscribe<std_msgs::Int32MultiArray>("/venom/bounding_box", 1, bb_callback);
@@ -53,7 +69,6 @@ int main (int argc, char** argv) {
   //nav->TakeOff(1.0);
 
   ros::Duration d(time_step);
-  ROS_INFO("Searching target...");
   geometry_msgs::PoseStamped cmd;
   cmd.pose.position.x = 0.0;
   cmd.pose.position.y = 0.0;
@@ -68,6 +83,7 @@ int main (int argc, char** argv) {
   bool ccw = true;
 
 search_target:
+  ROS_INFO("Searching target...");
   while (ros::ok()) {
     if (px1!=0 || px2!=0 || py1 != 0 || py2 != 0) break;
     venom::wait_key(0,1000,c);
@@ -94,30 +110,30 @@ search_target:
       int midx = (px1 + px2)/2, midy = (py1 + py2)/2;
       ROS_INFO_STREAM("target center (" << midx << ", " << midy << ")");
 
-      // TODO: set dist = 0.2 if you want to move forward.
-      double theta = 0.0, dist = 0.2, dz = 0.0;
-      if (cy - midy > toly ) {
+      double theta = 0.0, dz = 0.0;
+      if (center_y - midy > tol_y ) {
         ROS_INFO("Go up");
-        dz = max_z * std::min(static_cast<double>(cy-midy)/static_cast<double>(cy), 1.0);
+        dz = max_z * std::min(static_cast<double>(center_y-midy)/static_cast<double>(center_y), 1.0);
         ROS_INFO_STREAM("dz = " << dz);
-      } else if (midy - cy > toly ) {
+      } else if (midy - center_y > tol_y ) {
         ROS_INFO("Go down");
-        dz = - max_z * std::min(static_cast<double>(midy-cy)/static_cast<double>(cy),1.0);
+        dz = - max_z * std::min(static_cast<double>(midy-center_y)/static_cast<double>(center_y),1.0);
         ROS_INFO_STREAM("dz = " << dz);
       }
-      if (midx - cx > tolx ) {
+      if (midx - center_x > tol_x ) {
         ROS_INFO("Turn right");
-        theta = - max_theta * std::min(static_cast<double>(midx-cx)/static_cast<double>(cx),1.0); // TODO: cast to double??
+        theta = - max_theta * std::min(static_cast<double>(midx-center_x)/static_cast<double>(center_x),1.0);
         ROS_INFO_STREAM("theta = " << theta);
         ccw = false;
-      } else if (cx - midx > tolx ) {
+      } else if (center_x - midx > tol_x ) {
         ROS_INFO("Turn left");
-        theta = max_theta * std::min(static_cast<double>(cx-midx)/static_cast<double>(cx), 1.0);
+        theta = max_theta * std::min(static_cast<double>(center_x-midx)/static_cast<double>(center_x), 1.0);
         ROS_INFO_STREAM("theta = " << theta);
         ccw = true;
       }
 
       // Matrix tranformation
+      cmd.pose.position = zed.GetPose().position;
       tf::poseMsgToEigen (cmd.pose, t);
       t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
       tf::poseEigenToMsg(t, cmd.pose);
