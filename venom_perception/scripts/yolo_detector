@@ -79,21 +79,22 @@ class ImageReader:
     except CvBridgeError as e:
       print(e)
 
+import argparse
 def main():
+  parser = argparse.ArgumentParser(description='Yolo detector')
+  parser.add_argument('-r', '--resolution', metavar=('x', 'y'), type=int, nargs=2, help='input resolution', required=True)
+  resolution = parser.parse_args().resolution
+  rospy.set_param('/venom/resolution/x',resolution[0])
+  rospy.set_param('/venom/resolution/y',resolution[1])
   ir = ImageReader()
   bb_pub = rospy.Publisher('/venom/bounding_box', Int32MultiArray, queue_size=10)
-
   darknet_path = os.environ['HOME']+'/darknet/drone_data/'
   net = dn.load_net(darknet_path+'tiny-yolo-drone.cfg',
                     darknet_path+'model_4.3/tiny-yolo-drone_11500.weights', 0)
   meta = dn.load_meta(darknet_path+'drone1.data')
   total_fps = 0
-  txt_file = open('bbox_history_'+ time.strftime("%Y-%m-%d-%H:%M:%S",time.gmtime())+'.txt','w')
-  measure = np.zeros(100)
-  count = 100
-  while not rospy.is_shutdown() and count >= 0:
-    count -= 1
-    image = ir.get_rgb(256,256)
+  while not rospy.is_shutdown():
+    image = ir.get_rgb(resolution[0],resolution[1])
     if image is None:
       continue
     start = time.time()
@@ -114,23 +115,20 @@ def main():
                     (int(avg[0]+avg[2]/2.0), int(avg[1]+avg[3]/2.0)), (0,0,255))
     fps = 1./(time.time()-start)
     print(fps)
-    measure[count] = fps
     # Convert the bounding box to top-left/bottom-right indices                 
     out = Int32MultiArray()
-    out.data = [int(avg[0]-avg[2]/2.0), int(avg[1]-avg[3]/2.0),\
-                int(avg[0]+avg[2]/2.0), int(avg[1]+avg[3]/2.0)]
+    #out.data = [int(avg[0]-avg[2]/2.0), int(avg[1]-avg[3]/2.0),\
+    #            int(avg[0]+avg[2]/2.0), int(avg[1]+avg[3]/2.0)]
+    out.data = [int(avg[0]), int(avg[1])]
     # Publish to ROS topic
     bb_pub.publish(out)
-    txt_file.write( time.strftime("%H:%M:%S ",time.gmtime())+str(out.data)+'\n')
 
     # imshow
     #cv2.imshow('detection', image)
     #if (cv2.waitKey(5) == 'q'):
     #  break
     ir.send_rgb(image)
-  #cv2.destroyAllWindows()
-  print 'Average fps', np.average(measure)
-  txt_file.close()
+  cv2.destroyAllWindows()
 
     
     

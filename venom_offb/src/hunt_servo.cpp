@@ -1,47 +1,83 @@
 #include <ros/ros.h>
 #include <std_msgs/Int32MultiArray.h>
-#include <venom_offb/Navigator.h>
-#include <venom_perception/Zed.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Quaternion.h>
+#include <string>
+#include <venom_offb/Navigator.h>
+#include <venom_perception/Zed.h>
 #include "util.h"
 
-int px1=0,px2=0,py1=0,py2=0;
-//int cx = 360, cy = 540; // 720p
-int cx = 128, cy = 128; // cv2.resize to 256x256
-//int cx = 320, cy = 240; // VGA
-int tolx = cx/12, toly = cy/12;
-bool trigger = false;
+#define INCLUDE_NAVIGATOR 1
+#define DEBUG_VISUAL_SERVO 0
+
+#if DEBUG_VISUAL_SERVO == 0
+int mid_x = 0, mid_y = 0;
+#else
+int mid_x = 20 mid_y = 0;
+#endif
+
+int center_x, center_y, tol_x, tol_y;
 static void bb_callback(std_msgs::Int32MultiArray::ConstPtr msg) {
-  px1 = std::max(msg->data[0],0);
-  py1 = std::max(msg->data[1],0);
-  px2 = std::min(msg->data[2],cx*2);
-  py2 = std::min(msg->data[3],cy*2);
-  trigger = true;
+  //px1 = std::max(msg->data[0],0);
+  //py1 = std::max(msg->data[1],0);
+  //px2 = std::min(msg->data[2],center_x*2);
+  //py2 = std::min(msg->data[3],center_y*2);
+  mid_x = msg->data[0];
+  mid_y = msg->data[1];
 }
 
-venom::Navigator* nav;                                                          
+#if INCLUDE_NAVIGATOR == 1
+venom::Navigator* nav;
+#endif
 
 void exit_handler(int s) {                                                      
-  ROS_WARN("Force quitting...\n");                                              
-  nav->Land();                                                                  
-  delete nav;                                                                   
-  exit(1);                                                                      
+  ROS_WARN("Force quitting...\n");
+  #if INCLUDE_NAVIGATOR == 1
+  nav->Land();
+  delete nav;
+  #endif
+  exit(1);
 }
 
 int main (int argc, char** argv) {
-  double max_theta = M_PI/3.0;
-  double max_z = 0.3;
-  double time_step = 0.1;
-  max_theta = std::stod(argv[1]);
-  max_z = std::stod(argv[2]);
-  time_step = std::stod(argv[3]);
-  std::cout << "Receive max_theta " << max_theta << std::endl;
-  std::cout << "Receive max_z " << max_z << std::endl;
-  std::cout << "Receive time_step " << time_step << std::endl;
   
   ros::init(argc, argv, "visual_servo", ros::init_options::NoSigintHandler);
+
+  // Retrieve input resolution of the YOLO detector
+  int resolution_x, resolution_y;
+  if (!ros::param::get("/venom/resolution/x", resolution_x)) {
+    ROS_ERROR("Couldn't find rosparam /venom/resolution/x");
+    return 1;
+  } else if (!ros::param::get("/venom/resolution/y", resolution_y)) {
+    ROS_ERROR("Couldn't find rosparam /venom/resotluion/y");
+    return 1;
+  }
+  ROS_INFO_STREAM("Retrieve resotlution "<< resolution_x << ", " << resolution_y);
+  center_x = resolution_x / 2;
+  center_y = resolution_y / 2;
+  tol_x = center_x / 12;
+  tol_y = center_y / 12;
+
+  // Retrive visual servo parameters from arguments
+  // arg1 | max_theta | max. yaw angle turns at each step
+  // arg2 | max_z     | max. z-axis adjustment at each step
+  // arg3 | dist      | forward step size (set 0.0 on yawing scenario)
+  // arg4 | time_step | period of a time step. No lower than 0.1 sec. This is due to
+  //                    the update time of the Navigation thread.
+  if (argc < 5) {
+    ROS_ERROR("Input format: max_theta | max_z | dist | time_step");
+    return 1;
+  }                                                     // Recommend values
+  double max_theta = std::stod(argv[1]);                // M_PI/3.0
+  double max_z = std::stod(argv[2]);                    // 0.3
+  double dist = std::stod(argv[3]);                     // 0.0
+  double time_step = std::max(0.1, std::stod(argv[4])); // 0.1
+  ROS_INFO_STREAM("Receive max_theta " << max_theta);
+  ROS_INFO_STREAM("Receive max_z " << max_z);
+  ROS_INFO_STREAM("Receive dist " << dist);
+  ROS_INFO_STREAM("Receive time_step " << time_step);
+  
   signal(SIGINT, exit_handler);
   ros::NodeHandle nh;
   ros::Subscriber bb_sub = nh.subscribe<std_msgs::Int32MultiArray>("/venom/bounding_box", 1, bb_callback);
@@ -49,11 +85,12 @@ int main (int argc, char** argv) {
   venom::Zed zed;
   zed.Enable(venom::PerceptionType::ODOM);
 
+  #if INCLUDE_NAVIGATOR == 1
   nav = new venom::Navigator();
   nav->TakeOff(1.0);
+  #endif
 
   ros::Duration d(time_step);
-  ROS_INFO("Searching target...");
   geometry_msgs::PoseStamped cmd;
   cmd.pose.position.x = 0.0;
   cmd.pose.position.y = 0.0;
@@ -62,71 +99,90 @@ int main (int argc, char** argv) {
   cmd.pose.orientation.y = 0.0;
   cmd.pose.orientation.z = 0.0;
   cmd.pose.orientation.w = 1.0;
-  Eigen::Affine3d t;
   char c = 'x';
-  int count = 0;
-  bool ccw = true;
+  int count = 0;        // Number of frames to activate search mode
+  bool ccw = true;      // Direction of search (true: counter-clockwise)
 
 search_target:
+  ROS_INFO("Search Mode");
   while (ros::ok()) {
-    if (px1!=0 || px2!=0 || py1 != 0 || py2 != 0) break;
+    if (mid_x != 0 || mid_y != 0) break;
     venom::wait_key(0,1000,c);
     if (c == 'q')
       break;
+    Eigen::Affine3d t;
     tf::poseMsgToEigen (cmd.pose, t);
     if (ccw)
       t.rotate (Eigen::AngleAxisd (M_PI/20.0, Eigen::Vector3d::UnitZ()));
     else
       t.rotate (Eigen::AngleAxisd (-M_PI/20.0, Eigen::Vector3d::UnitZ()));
     tf::poseEigenToMsg(t, cmd.pose);
+
+    #if INCLUDE_NAVIGATOR == 1
     nav->SetPoint(cmd);
+    #endif
+
     ros::spinOnce();
     d.sleep();
   }
   c = 'x';
-  ROS_INFO("Begin z-axis following");
+  ROS_INFO("Hunt Mode");
   while (ros::ok()) {
     venom::wait_key(0,1000,c);
     if (c == 'q')
       break;
-    if (px1!=0 || px2!=0 || py1 != 0 || py2 != 0) {
-      // Compute the center of bounding box
-      int midx = (px1 + px2)/2, midy = (py1 + py2)/2;
-      ROS_INFO_STREAM("target center (" << midx << ", " << midy << ")");
+    if (mid_x != 0 || mid_y != 0) {
+      ROS_INFO_STREAM("target center (" << mid_x << ", " << mid_y << ")");
 
-      // TODO: set dist = 0.2 if you want to move forward.
-      double theta = 0.0, dist = 0.2, dz = 0.0;
-      if (cy - midy > toly ) {
+      double theta = 0.0, dz = 0.0;
+      if (center_y - mid_y > tol_y ) {
         ROS_INFO("Go up");
-        dz = max_z * std::min(static_cast<double>(cy-midy)/static_cast<double>(cy), 1.0);
+        dz = max_z * std::min(static_cast<double>(center_y-mid_y)/static_cast<double>(center_y), 1.0);
         ROS_INFO_STREAM("dz = " << dz);
-      } else if (midy - cy > toly ) {
+      } else if (mid_y - center_y > tol_y ) {
         ROS_INFO("Go down");
-        dz = - max_z * std::min(static_cast<double>(midy-cy)/static_cast<double>(cy),1.0);
+        dz = - max_z * std::min(static_cast<double>(mid_y-center_y)/static_cast<double>(center_y),1.0);
         ROS_INFO_STREAM("dz = " << dz);
       }
-      if (midx - cx > tolx ) {
+      if (mid_x - center_x > tol_x ) {
         ROS_INFO("Turn right");
-        theta = - max_theta * std::min(static_cast<double>(midx-cx)/static_cast<double>(cx),1.0); // TODO: cast to double??
+        theta = - max_theta * std::min(static_cast<double>(mid_x-center_x)/static_cast<double>(center_x),1.0);
         ROS_INFO_STREAM("theta = " << theta);
         ccw = false;
-      } else if (cx - midx > tolx ) {
+      } else if (center_x - mid_x > tol_x ) {
         ROS_INFO("Turn left");
-        theta = max_theta * std::min(static_cast<double>(cx-midx)/static_cast<double>(cx), 1.0);
+        theta = max_theta * std::min(static_cast<double>(center_x-mid_x)/static_cast<double>(center_x), 1.0);
         ROS_INFO_STREAM("theta = " << theta);
         ccw = true;
       }
 
-      // Matrix tranformation
-      tf::poseMsgToEigen (cmd.pose, t);
-      t.rotate (Eigen::AngleAxisd (theta, Eigen::Vector3d::UnitZ()));
-      tf::poseEigenToMsg(t, cmd.pose);
-      cmd.pose.position.x += dist * cos(theta);
-      cmd.pose.position.y += dist * sin(theta);
-      cmd.pose.position.z += dz;
-      nav->SetPoint(cmd);
+      geometry_msgs::Pose curr_pose = zed.GetPose();
+      Eigen::Affine3d curr_transform;
+      tf::poseMsgToEigen (curr_pose, curr_transform);
+      curr_transform.translation() << 0, 0, 0;      // Pure rotation, exclude translation
+      Eigen::Vector3d unit_x(1,0,0);
+      Eigen::Vector3d v = curr_transform * unit_x;  // Project quaternion to XY plane
+      double phi = std::atan2(v[1], v[0]);
+      Eigen::Affine3d cmd_transform = Eigen::Affine3d::Identity();
+      cmd_transform.rotate (Eigen::AngleAxisd (theta+phi, Eigen::Vector3d::UnitZ()));
+      tf::poseEigenToMsg(cmd_transform, cmd.pose);
+      cmd.pose.position.x = curr_pose.position.x + dist * cos(theta+phi);
+      cmd.pose.position.y = curr_pose.position.y + dist * sin(theta+phi);
+      cmd.pose.position.z = curr_pose.position.z + dz;
+      #if DEBUG_VISUAL_SERVO == 1
+      std::cout << "current pose " << curr_pose << std::endl;
+      std::cout << "projected x-axis " << v << std::endl;
+      std::cout << "command_pose " << cmd.pose << std::endl;
+      #endif
 
-      px1 = py1 = px2 = py2 = 0; // clear buffered values
+      #if INCLUDE_NAVIGATOR == 1
+      nav->SetPoint(cmd);
+      #endif
+
+      #if DEBUG_VISUAL_SERVO == 0
+      //px1 = py1 = px2 = py2 = 0;                    // clear buffered values
+      mid_x = mid_y = 0;
+      #endif
       count = 10;
     } else {
       if (--count <= 0) goto search_target;
@@ -134,6 +190,8 @@ search_target:
     d.sleep();
     ros::spinOnce();
   }
+  #if INCLUDE_NAVIGATOR == 1
   nav->Land(0.8);
+  #endif
   return 0;
 }

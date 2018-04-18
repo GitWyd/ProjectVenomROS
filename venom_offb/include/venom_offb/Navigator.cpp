@@ -167,7 +167,7 @@ bool Navigator::EndNavProcess() {
 }
 
 void Navigator::NavProcess() {
-  ros::Duration d(0.03);
+  ros::Duration d(0.1);
   while (ros::ok() && GetStatus()) {
     setpoint_pub_.publish(setpoint_);
     d.sleep();
