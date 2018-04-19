@@ -1,5 +1,6 @@
 import glob
 import numpy as np
+from scipy.signal import resample
 
 def rolling_window(array, window, time_axis=0):
     if time_axis == 0:
@@ -39,7 +40,9 @@ def load_data(path, history, shuffle=True):
     npyfiles = glob.glob(path+'*.npy')
     data = []
     for npyfile in npyfiles:
-        data.append(np.load(npyfiles[0]))
+        raw = np.load(npyfile)
+        downsample = resample(raw, len(raw)/15)
+        data.append(downsample)
 
     # NOTE: Must shuffle before concatenate, because rolling window works on a 
     #       time series.
