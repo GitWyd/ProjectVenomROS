@@ -8,7 +8,7 @@
 #include <venom_perception/Zed.h>
 #include "util.h"
 
-#define INCLUDE_NAVIGATOR 1
+#define INCLUDE_NAVIGATOR 0
 #define DEBUG_VISUAL_SERVO 0
 
 #if DEBUG_VISUAL_SERVO == 0
@@ -62,21 +62,21 @@ int main (int argc, char** argv) {
   // Retrive visual servo parameters from arguments
   // arg1 | max_theta | max. yaw angle turns at each step
   // arg2 | max_z     | max. z-axis adjustment at each step
-  // arg3 | dist      | forward step size (set 0.0 on yawing scenario)
-  // arg4 | time_step | period of a time step. No lower than 0.1 sec. This is due to
+  // arg3 | step      | forward step size (set 0.0 on yawing scenario)
+  // arg4 | dt        | period of a time step. No lower than 0.1 sec. This is due to
   //                    the update time of the Navigation thread.
   if (argc < 5) {
-    ROS_ERROR("Input format: max_theta | max_z | dist | time_step");
+    ROS_ERROR("Input format: max_theta | max_z | step | dt");
     return 1;
   }                                                     // Recommend values
   double max_theta = std::stod(argv[1]);                // M_PI/3.0
   double max_z = std::stod(argv[2]);                    // 0.3
-  double dist = std::stod(argv[3]);                     // 0.0
-  double time_step = std::max(0.1, std::stod(argv[4])); // 0.1
+  double step = std::stod(argv[3]);                     // 0.0
+  double dt = std::max(0.1, std::stod(argv[4]));        // 0.1
   ROS_INFO_STREAM("Receive max_theta " << max_theta);
   ROS_INFO_STREAM("Receive max_z " << max_z);
-  ROS_INFO_STREAM("Receive dist " << dist);
-  ROS_INFO_STREAM("Receive time_step " << time_step);
+  ROS_INFO_STREAM("Receive step " << step);
+  ROS_INFO_STREAM("Receive dt " << dt);
   
   signal(SIGINT, exit_handler);
   ros::NodeHandle nh;
@@ -90,7 +90,7 @@ int main (int argc, char** argv) {
   nav->TakeOff(1.0);
   #endif
 
-  ros::Duration d(time_step);
+  ros::Duration d(dt);
   geometry_msgs::PoseStamped cmd;
   cmd.pose.position.x = 0.0;
   cmd.pose.position.y = 0.0;
@@ -166,8 +166,8 @@ search_target:
       Eigen::Affine3d cmd_transform = Eigen::Affine3d::Identity();
       cmd_transform.rotate (Eigen::AngleAxisd (theta+phi, Eigen::Vector3d::UnitZ()));
       tf::poseEigenToMsg(cmd_transform, cmd.pose);
-      cmd.pose.position.x = curr_pose.position.x + dist * cos(theta+phi);
-      cmd.pose.position.y = curr_pose.position.y + dist * sin(theta+phi);
+      cmd.pose.position.x = curr_pose.position.x + step * cos(theta+phi);
+      cmd.pose.position.y = curr_pose.position.y + step * sin(theta+phi);
       cmd.pose.position.z = curr_pose.position.z + dz;
       #if DEBUG_VISUAL_SERVO == 1
       std::cout << "current pose " << curr_pose << std::endl;
@@ -180,8 +180,7 @@ search_target:
       #endif
 
       #if DEBUG_VISUAL_SERVO == 0
-      //px1 = py1 = px2 = py2 = 0;                    // clear buffered values
-      mid_x = mid_y = 0;
+      mid_x = mid_y = 0;                            // clear buffered values
       #endif
       count = 10;
     } else {
