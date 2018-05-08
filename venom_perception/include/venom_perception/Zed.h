@@ -29,7 +29,7 @@ public:
   cv::Mat GetRGB();
   cv::Mat GetDepth();
   void SetROI(int x1, int x2, int y1, int y2);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr GetCloud();
+  pcl::PointCloud<pcl::PointXYZRGB> GetCloud();
   std_msgs::Header GetHeader();
 
 private:

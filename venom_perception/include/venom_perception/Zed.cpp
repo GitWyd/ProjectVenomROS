@@ -77,14 +77,14 @@ void Zed::RGBCallback(const sensor_msgs::ImageConstPtr& msg) {
 
 void Zed::CloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
   header_ = cloud_msg->header;
-  pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud_raw;
-  pcl::fromROSMsg(*cloud_msg,pcl_cloud_raw);
-  cloud_.clear();
-  for (int i = roi_x_.first; i < roi_x_.second; i++) {
-    for (int j = roi_y_.first; j < roi_y_.second; j++) {
-      cloud_.push_back(pcl_cloud_raw.at(i,j));
-    }
-  }
+  //pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud_raw;
+  pcl::fromROSMsg(*cloud_msg,cloud_);
+  //cloud_.clear();
+  //for (int i = roi_x_.first; i < roi_x_.second; i++) {
+  //  for (int j = roi_y_.first; j < roi_y_.second; j++) {
+  //    cloud_.push_back(pcl_cloud_raw.at(i,j));
+  //  }
+  //}
 }
 
 cv::Mat Zed::GetRGB() {
@@ -95,9 +95,9 @@ cv::Mat Zed::GetDepth() {
   return cv::Mat(depth_ptr_->image);
 }
 
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr Zed::GetCloud() {
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr res(new pcl::PointCloud<pcl::PointXYZRGB>(cloud_));
-  return res;
+pcl::PointCloud<pcl::PointXYZRGB> Zed::GetCloud() {
+  //pcl::PointCloud<pcl::PointXYZRGB>::Ptr res(new pcl::PointCloud<pcl::PointXYZRGB>(cloud_));
+  return cloud_;
 }
 
 geometry_msgs::Pose Zed::GetPose() {
