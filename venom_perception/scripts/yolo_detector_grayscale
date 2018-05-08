@@ -75,7 +75,7 @@ class ImageReader:
 
   def send_rgb(self, cv_image):
     try:
-      self.__rgb_pub.publish(self.__bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+      self.__rgb_pub.publish(self.__bridge.cv2_to_imgmsg(cv_image, "mono8"))
     except CvBridgeError as e:
       print(e)
 
@@ -97,6 +97,7 @@ def main():
     image = ir.get_rgb(resolution[0],resolution[1])
     if image is None:
       continue
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     start = time.time()
     im = array_to_image(image)
     r = detect2(net, meta, im, thresh=0.2, hier_thresh=0.5, nms=0.45)
