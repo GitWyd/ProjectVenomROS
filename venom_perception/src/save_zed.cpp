@@ -27,7 +27,6 @@ int count = 0;
 cv::Mat rgb;
 geometry_msgs::Pose p;
 pcl::PointCloud<pcl::PointXYZRGB> cloud;
-std::ostringstream pout, qout;            // Shared string buffer
 
 std::string pcl_prefix = "cloud_";
 std::string pcl_postfix = ".pcd";
@@ -46,8 +45,11 @@ static void save_data() {
 
       std::ofstream txt;
       txt.open(pose_prefix+std::to_string(count)+pose_postfix);
-      txt << pout.str() << '\n';
-      txt << qout.str();
+      txt << "Position:";
+      txt << p.position.x << ","  << p.position.y << "," << p.position.z << '\n';
+      txt << "Orientation:";
+      txt << p.orientation.x << "," << p.orientation.y << "," << p.orientation.z
+          << "," << p.orientation.w;
       txt.close();
 
       count++;
@@ -80,16 +82,17 @@ int main (int argc, char** argv) {
                 cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255), 0.06);
 
     // Print position on copied image
-    pout.str("");
+    std::ostringstream pout;            // Shared string buffer
     pout << std::setprecision(2) << "Position:" << p.position.x << ", " 
          << p.position.y << ", " << p.position.z;
     cv::putText(copy_img,pout.str(), cv::Point(rgb.cols*0.55, rgb.rows*0.85),
                 cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255), 0.06);
 
     // Print orientation on copied image
-    qout.str("");
+    std::ostringstream qout;
     qout << std::setprecision(2) << "Orientation:" << p.orientation.x << ", "
-         << p.orientation.y << ", " << p.orientation.z;
+         << p.orientation.y << ", " << p.orientation.z << ", " 
+         << p.orientation.w;
     cv::putText(copy_img,qout.str(), cv::Point(rgb.cols*0.55, rgb.rows*0.9),
                 cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255), 0.06);
 
