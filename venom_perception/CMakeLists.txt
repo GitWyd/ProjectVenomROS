@@ -52,14 +52,11 @@ install(DIRECTORY include/${PROJECT_NAME}/
 add_executable(depth_map src/depth_map.cpp)
 target_link_libraries(depth_map ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
-add_executable(example src/example.cpp)
-target_link_libraries(example ${catkin_LIBRARIES})
-
 add_executable(save_zed src/save_zed.cpp)
-target_link_libraries(save_zed ${catkin_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(save_zed ${catkin_LIBRARIES} ${PROJECT_NAME} ${OpenCV_LIBS})
 
 add_executable(local_map src/local_map.cpp)
 target_link_libraries(local_map ${catkin_LIBRARIES})
 
-add_executable(detect_cloud src/detect_cloud.cpp)
-target_link_libraries(detect_cloud ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME})
+#add_executable(detect_cloud src/detect_cloud.cpp)
+#target_link_libraries(detect_cloud ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME})
