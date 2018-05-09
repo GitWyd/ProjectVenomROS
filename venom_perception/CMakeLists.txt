@@ -49,9 +49,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 
 ## Declare a C++ executable
-add_executable(depth_map src/depth_map.cpp)
-target_link_libraries(depth_map ${catkin_LIBRARIES} ${OpenCV_LIBS})
-
 add_executable(save_zed src/save_zed.cpp)
 target_link_libraries(save_zed ${catkin_LIBRARIES} ${PROJECT_NAME} ${OpenCV_LIBS})
 
