@@ -55,5 +55,8 @@ target_link_libraries(save_zed ${catkin_LIBRARIES} ${PROJECT_NAME} ${OpenCV_LIBS
 add_executable(local_map src/local_map.cpp)
 target_link_libraries(local_map ${catkin_LIBRARIES})
 
+add_executable(sphere_map src/sphere_map.cpp)
+target_link_libraries(sphere_map ${catkin_LIBRARIES})
+
 #add_executable(detect_cloud src/detect_cloud.cpp)
 #target_link_libraries(detect_cloud ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME})
